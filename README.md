@@ -1,0 +1,2 @@
+# Intelligent-Sales-Management-System
+智能销售分析Agent，可用于商店的销售数据分析生成每日报表，还可以通过对话界面让Agent查询到想要的数据
