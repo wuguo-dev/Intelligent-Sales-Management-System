@@ -1,0 +1,14 @@
+target/
+*.class
+*.jar
+*.war
+.idea/
+*.iml
+.vscode/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+application-private.yml
+*.sensitive-backup
