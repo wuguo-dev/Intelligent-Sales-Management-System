@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.haowugou.infrastructure.persistence.mapper.WarehouseQueryMapper">
+
+    <select id="findAllActiveByStoreId"
+            resultType="com.haowugou.infrastructure.persistence.data.WarehouseRow">
+        SELECT id, store_id, warehouse_code, warehouse_name
+        FROM warehouse
+        WHERE store_id = #{storeId}
+          AND status = 'ENABLED'
+        ORDER BY id ASC
+    </select>
+
+    <select id="existsByStoreIdAndId" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM warehouse
+        WHERE store_id = #{storeId}
+          AND id = #{warehouseId}
+    </select>
+</mapper>

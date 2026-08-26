@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.haowugou</groupId>
+        <artifactId>haowugou</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>haowugou-agent</artifactId>
+    <name>haowugou-agent</name>
+    <description>Agent 核心模块：Tool 定义、NL2SQL、提示词、对话服务（独立扩展区）</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.haowugou</groupId>
+            <artifactId>haowugou-application</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- 通义千问 DashScope 模型接入，版本由 extensions BOM 管理 -->
+        <dependency>
+            <groupId>com.alibaba.cloud.ai</groupId>
+            <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.haowugou.infrastructure.persistence.mapper.StoreProductQueryMapper">
+
+    <sql id="productFilters">
+        v.store_id = #{criteria.storeId}
+        <if test="criteria.keyword != null and criteria.keyword.trim() != ''">
+            AND (
+                v.barcode LIKE CONCAT(#{criteria.keyword}, '%')
+                OR v.product_name LIKE CONCAT('%', #{criteria.keyword}, '%')
+            )
+        </if>
+        <if test="criteria.categoryId != null">
+            AND v.category_id = #{criteria.categoryId}
+        </if>
+        <if test="criteria.supplierId != null">
+            AND EXISTS (
+                SELECT 1
+                FROM product_supplier ps_filter
+                WHERE ps_filter.product_id = v.product_id
+                  AND ps_filter.supplier_id = #{criteria.supplierId}
+            )
+        </if>
+        <if test="criteria.warehouseId != null">
+            AND v.warehouse_id = #{criteria.warehouseId}
+        </if>
+        <if test="criteria.inventoryStatus != null">
+            AND v.inventory_status = #{criteria.inventoryStatus}
+        </if>
+        <if test="criteria.dataStatus != null">
+            AND v.data_status = #{criteria.dataStatus}
+        </if>
+        <if test="criteria.minStock != null">
+            AND v.current_quantity &gt;= #{criteria.minStock}
+        </if>
+        <if test="criteria.maxStock != null">
+            AND v.current_quantity &lt;= #{criteria.maxStock}
+        </if>
+    </sql>
+
+    <select id="countProducts" resultType="long">
+        SELECT COUNT(*)
+        FROM v_product_inventory_query v
+        WHERE <include refid="productFilters"/>
+    </select>
+
+    <select id="findProductPage"
+            resultType="com.haowugou.infrastructure.persistence.data.StoreProductRow">
+        SELECT
+            v.product_id,
+            v.barcode,
+            v.product_name,
+            v.unit,
+            v.category_id,
+            v.category_code,
+            v.category_name,
+            v.warehouse_id,
+            v.warehouse_code,
+            v.warehouse_name,
+            v.tax_cost_price,
+            v.sale_price,
+            v.current_quantity,
+            v.inventory_status,
+            v.data_status
+        FROM v_product_inventory_query v
+        WHERE <include refid="productFilters"/>
+        ORDER BY v.product_id ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findProductDetail"
+            resultType="com.haowugou.infrastructure.persistence.data.StoreProductRow">
+        SELECT
+            v.product_id,
+            v.barcode,
+            v.product_name,
+            v.unit,
+            v.category_id,
+            v.category_code,
+            v.category_name,
+            v.warehouse_id,
+            v.warehouse_code,
+            v.warehouse_name,
+            v.tax_cost_price,
+            v.sale_price,
+            p.remarks,
+            v.current_quantity,
+            v.inventory_status,
+            v.data_status
+        FROM v_product_inventory_query v
+        INNER JOIN product p ON p.id = v.product_id
+        WHERE v.store_id = #{storeId}
+          AND v.product_id = #{productId}
+    </select>
+
+    <select id="findSuppliers"
+            resultType="com.haowugou.infrastructure.persistence.data.ProductSupplierRow">
+        SELECT ps.product_id, s.supplier_name
+        FROM product_supplier ps
+        INNER JOIN supplier s ON s.id = ps.supplier_id
+        INNER JOIN store_product_inventory spi
+            ON spi.product_id = ps.product_id
+           AND spi.store_id = #{storeId}
+        WHERE ps.product_id IN
+        <foreach collection="productIds" item="productId" open="(" separator="," close=")">
+            #{productId}
+        </foreach>
+        ORDER BY ps.product_id ASC, ps.is_primary DESC, s.supplier_name ASC, s.id ASC
+    </select>
+
+    <select id="findSalesMetrics"
+            resultType="com.haowugou.infrastructure.persistence.data.ProductSalesMetricsRow">
+        SELECT
+            sales.product_id,
+            COALESCE(SUM(sales.sales_quantity), 0) AS sales_quantity,
+            COALESCE(SUM(sales.sales_amount), 0) AS sales_amount,
+            COALESCE(SUM(sales.gross_profit_amount), 0) AS gross_profit_amount
+        FROM v_posted_daily_product_sales sales
+        WHERE sales.store_id = #{storeId}
+          AND sales.business_date BETWEEN #{startDate} AND #{endDate}
+          AND sales.product_id IN
+        <foreach collection="productIds" item="productId" open="(" separator="," close=")">
+            #{productId}
+        </foreach>
+        GROUP BY sales.product_id
+        ORDER BY sales.product_id ASC
+    </select>
+</mapper>
