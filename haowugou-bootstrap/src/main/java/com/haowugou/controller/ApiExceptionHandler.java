@@ -1,5 +1,9 @@
 package com.haowugou.controller;
 
+import com.haowugou.application.inventoryimport.ActiveInitialBatchExistsException;
+import com.haowugou.application.inventoryimport.DuplicateImportFileException;
+import com.haowugou.application.inventoryimport.ImportWarehouseException;
+import com.haowugou.application.inventoryimport.InvalidImportFileException;
 import com.haowugou.application.operating.InvalidOperatingDataQueryException;
 import com.haowugou.application.operating.StoreNotFoundException;
 import com.haowugou.application.product.InvalidStoreProductQueryException;
@@ -11,6 +15,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 /**
  * 将可预期的应用异常转换为统一的 Problem Detail 响应。
@@ -49,9 +55,39 @@ public class ApiExceptionHandler {
         return badRequest(exception.getMessage());
     }
 
+    @ExceptionHandler(InvalidImportFileException.class)
+    ProblemDetail handleInvalidImportFile(InvalidImportFileException exception) {
+        return badRequest(exception.getMessage());
+    }
+
+    @ExceptionHandler(ImportWarehouseException.class)
+    ProblemDetail handleImportWarehouse(ImportWarehouseException exception) {
+        return badRequest(exception.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateImportFileException.class)
+    ProblemDetail handleDuplicateImportFile(DuplicateImportFileException exception) {
+        return conflict(exception.getMessage());
+    }
+
+    @ExceptionHandler(ActiveInitialBatchExistsException.class)
+    ProblemDetail handleActiveInitialBatch(ActiveInitialBatchExistsException exception) {
+        return conflict(exception.getMessage());
+    }
+
     @ExceptionHandler(MissingServletRequestParameterException.class)
     ProblemDetail handleMissingParameter(MissingServletRequestParameterException exception) {
         return badRequest("缺少请求参数: " + exception.getParameterName());
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    ProblemDetail handleMissingPart(MissingServletRequestPartException exception) {
+        return badRequest("缺少上传文件: " + exception.getRequestPartName());
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ProblemDetail handleMaxUploadSize(MaxUploadSizeExceededException exception) {
+        return badRequest("上传文件超过大小限制");
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -62,6 +98,12 @@ public class ApiExceptionHandler {
     private ProblemDetail badRequest(String message) {
         ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, message);
         detail.setTitle("请求参数错误");
+        return detail;
+    }
+
+    private ProblemDetail conflict(String message) {
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
+        detail.setTitle("导入冲突");
         return detail;
     }
 }
