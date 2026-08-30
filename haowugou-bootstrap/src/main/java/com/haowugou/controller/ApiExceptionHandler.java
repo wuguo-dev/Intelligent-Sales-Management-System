@@ -9,6 +9,9 @@ import com.haowugou.application.operating.StoreNotFoundException;
 import com.haowugou.application.product.InvalidStoreProductQueryException;
 import com.haowugou.application.product.StoreProductNotFoundException;
 import com.haowugou.application.product.WarehouseNotInStoreException;
+import com.haowugou.application.salesimport.DuplicateSalesFileException;
+import com.haowugou.application.salesimport.InvalidSalesImportException;
+import com.haowugou.application.salesimport.PostedSalesBatchExistsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -73,6 +76,21 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(ActiveInitialBatchExistsException.class)
     ProblemDetail handleActiveInitialBatch(ActiveInitialBatchExistsException exception) {
+        return conflict(exception.getMessage());
+    }
+
+    @ExceptionHandler(InvalidSalesImportException.class)
+    ProblemDetail handleInvalidSalesImport(InvalidSalesImportException exception) {
+        return badRequest(exception.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateSalesFileException.class)
+    ProblemDetail handleDuplicateSalesFile(DuplicateSalesFileException exception) {
+        return conflict(exception.getMessage());
+    }
+
+    @ExceptionHandler(PostedSalesBatchExistsException.class)
+    ProblemDetail handlePostedSalesBatchExists(PostedSalesBatchExistsException exception) {
         return conflict(exception.getMessage());
     }
 
