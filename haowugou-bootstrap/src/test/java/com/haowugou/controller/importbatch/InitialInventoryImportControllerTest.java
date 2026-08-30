@@ -3,6 +3,7 @@ package com.haowugou.controller.importbatch;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -139,6 +140,18 @@ class InitialInventoryImportControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.title").value("请求参数错误"));
+    }
+
+    @Test
+    void nonMultipartRequestReturnsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/stores/{storeId}/inventory/import", STORE_ID)
+                        .param("warehouseId", String.valueOf(WAREHOUSE_ID))
+                        .param("file", FILE_NAME))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.title").value("请求参数错误"))
+                .andExpect(jsonPath("$.detail")
+                        .value("请求不是 multipart/form-data 表单，请以 form-data 方式上传 file 文件参数"));
     }
 
     @Test

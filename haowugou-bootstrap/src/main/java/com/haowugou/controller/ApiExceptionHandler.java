@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 /**
@@ -88,6 +89,16 @@ public class ApiExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     ProblemDetail handleMaxUploadSize(MaxUploadSizeExceededException exception) {
         return badRequest("上传文件超过大小限制");
+    }
+
+    /**
+     * 请求不是 multipart 表单（例如把文件参数填成了普通查询参数），提示正确的上传方式。
+     *
+     * <p>{@link MaxUploadSizeExceededException} 是本异常的子类，由上面更具体的处理器优先匹配。
+     */
+    @ExceptionHandler(MultipartException.class)
+    ProblemDetail handleMultipart(MultipartException exception) {
+        return badRequest("请求不是 multipart/form-data 表单，请以 form-data 方式上传 file 文件参数");
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
