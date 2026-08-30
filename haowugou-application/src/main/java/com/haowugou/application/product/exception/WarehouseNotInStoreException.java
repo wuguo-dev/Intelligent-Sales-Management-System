@@ -1,4 +1,4 @@
-package com.haowugou.application.product;
+package com.haowugou.application.product.exception;
 
 /** 查询使用的仓库不属于指定门店。 */
 public final class WarehouseNotInStoreException extends RuntimeException {

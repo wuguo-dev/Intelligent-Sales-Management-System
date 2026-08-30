@@ -116,3 +116,48 @@
 ## 备注
 - 冒烟测试使用真实桌面文件《商品资料1.xls》验证端到端，清理后残留 0。
 - 提交与推送需用户确认后执行。
+
+---
+
+# 后续任务：每日销售导入与库存扣减（2026-08-30）
+
+## 目标
+路线图第 3 项：按门店导入每日销售数据（POS 商品销售汇总 .xls / .xlsx）并扣减库存，
+验证真实 POS 文件成功入账为销售事实。
+
+## 当前阶段
+实现与验证全部完成（119/119 测试 + 真实 POS 销售文件端到端通过），文档已同步；
+提交与推送待用户确认。
+
+## 各阶段
+- [x] 真实文件实测与设计文档 — complete
+- [x] domain 端口与值对象（`domain.salesimport`，9 个文件）— complete
+- [x] application 用例 `PostDailySalesImport` + 19 个单测 — complete
+- [x] infrastructure EasyExcel 销售解析器 + 9 个单测 — complete
+- [x] infrastructure MyBatis Adapter + `DailySalesImportMapper.xml` — complete
+- [x] bootstrap Controller + 配置 + 异常映射 + 13 个 MockMvc 契约测试 — complete
+- [x] 真实 MySQL 全链路集成测试 8 项 — complete
+- [x] 真实 POS 销售文件端到端测试 + 全量回归（119/119）— complete
+- [x] 文档同步（设计文档/README/CHANGELOG/progress/findings/task_plan/CLAUDE.md）— complete
+
+## 已做决策
+| 决策 | 理由 |
+|------|------|
+| 沿用方案 A：上传即同步校验过账，全有或全无 | 与初始库存导入一致，批次直接落终态 |
+| `businessDate` 必填请求参数 | 文件无日期列，且唯一键要求 `data_date` 有值 |
+| 未知条码建 PENDING 商品后照常入账 | 架构规范 §17.2；销售事实不能因主数据缺失而丢 |
+| 毛利额 = 收入 × POS 毛利率 ÷ 100 | 第 4 列是当前最后进价，实测 45 行与毛利率矛盾 |
+| 数量与收入同时为 0 的行只留审计 | 413/899 行无分析价值，且库层禁止 0 流水 |
+| 新建独立端口，不复用初始库存导入的端口与 Mapper | 行模型与写入表不同，复用会导致按类型注入歧义 |
+| 真实文件测试路径经环境变量传入 | 业务文件不进仓库，缺文件时跳过而非失败 |
+
+## 关键问题
+1. 真实销售文件是否有日期列？（无，`businessDate` 定为必填参数）
+2. 能否用「收入 − 数量 × 进价」算毛利额？（不能，第 4 列是当前进价，实测 45 行矛盾）
+3. 同条码多供应商如何落库？（按 `supplier_key = IFNULL(supplier_id,0)` 归并，未识别供应商合成一条）
+4. 未知条码是否阻断整批？（不阻断，建 PENDING 商品后入账，与上一片相反）
+
+## 备注
+- 端到端测试输入《商品销售汇总.xls》，899 数据行落库后数量 988.000、收入 7342.00
+  与文件自带合计行一致；测试结束回滚，残留 0。
+- 路线图下一项：批次查询与撤销（REVERSED/REVERSAL 链路）。

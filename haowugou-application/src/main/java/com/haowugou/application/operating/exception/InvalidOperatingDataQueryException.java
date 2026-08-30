@@ -1,4 +1,4 @@
-package com.haowugou.application.operating;
+package com.haowugou.application.operating.exception;
 
 /**
  * 经营数据查询参数不符合应用层约束。

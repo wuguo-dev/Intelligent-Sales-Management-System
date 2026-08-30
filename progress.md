@@ -154,6 +154,71 @@
   `codex/initial-inventory-import`（amend 合并 task_plan 措辞修正）。
 - 创建/修改的文件：`README.md`、`CHANGELOG.md`、`progress.md`、`findings.md`、`task_plan.md`
 
+## 会话：2026-08-30（每日销售导入与库存扣减）
+
+### 阶段 1：真实文件实测与设计
+- **状态：** complete
+- 执行的操作：
+  - 实测桌面《商品销售汇总.xls》：901 行 × 15 列全文本、单 sheet、表头第 1 行、末行为合计行。
+  - 量化 899 个数据行：413 行数量与收入同时为 0、1 行退货、`(条码,供应商)` 重复 0、条码非法 0、
+    45 行「收入−数量×进价」与 POS 毛利率矛盾（第 4 列是**当前**最后进价，不能用来算毛利额）。
+  - 确认文件无日期列 → `businessDate` 定为必填请求参数。
+  - 确认独立端口（行模型与写入表都不同，且会让既有配置类按类型注入变歧义）。
+- 创建/修改的文件：`docs/superpowers/specs/2026-08-30-daily-sales-import-design.md`
+
+### 阶段 2：domain 端口与值对象
+- **状态：** complete
+- 执行的操作：新增 `DailySalesFileParser`/`DailySalesImportRepository` 端口与解析行、销售事实、
+  库存流水、待完善商品草稿、过账与结果值对象。
+- 创建/修改的文件：`haowugou-domain/src/main/java/com/haowugou/domain/salesimport/*`（9 个文件）
+
+### 阶段 3：application 用例与单测
+- **状态：** complete
+- 执行的操作：新增 `PostDailySalesImport`：校验顺序（门店ID → 业务日期 → 文件入参 → 门店有效性
+  → SHA-256 查重 → 当日有效批次 → 解析 → 行级校验），毛利额 = 收入 × POS 毛利率 ÷ 100（HALF_UP 2 位），
+  按 `(条码, supplier_key)` 归并事实、按条码汇总净销量得流水；19 个单测全过。
+- 创建/修改的文件：`haowugou-application/src/main/java/com/haowugou/application/salesimport/*` 及同名测试
+
+### 阶段 4：infrastructure 解析器与 Adapter
+- **状态：** complete
+- 执行的操作：
+  - `PosDailySalesExcelFileParser` 按表头名定位 9 列，条码与商品名皆空的行（合计行/空行）丢弃；9 个单测。
+  - `DailySalesImportMapper.xml` + `MybatisDailySalesImportRepository`：批次插入、条码/供应商/品类
+    批量查询、原始行批插、PENDING 商品批插、销售事实批插、库存 upsert、流水批插，单事务过账。
+- 创建/修改的文件：
+  - `haowugou-infrastructure/src/main/java/com/haowugou/infrastructure/fileimport/PosDailySalesExcelFileParser.java`
+  - `haowugou-infrastructure/src/main/java/com/haowugou/infrastructure/persistence/salesimport/*`
+  - `haowugou-infrastructure/src/main/resources/mapper/DailySalesImportMapper.xml`
+
+### 阶段 5：bootstrap 接口与契约
+- **状态：** complete
+- 执行的操作：新增 `DailySalesImportController`（multipart + 必填 `businessDate`）、响应模型、
+  `DailySalesImportConfiguration`；`ApiExceptionHandler` 追加 3 个映射；13 个 MockMvc 契约测试（STRICT JSON）。
+- 创建/修改的文件：
+  - `haowugou-bootstrap/src/main/java/com/haowugou/controller/salesimport/*`
+  - `haowugou-bootstrap/src/main/java/com/haowugou/config/DailySalesImportConfiguration.java`
+  - `haowugou-bootstrap/src/main/java/com/haowugou/controller/ApiExceptionHandler.java`（仅追加）
+  - `haowugou-bootstrap/src/test/java/com/haowugou/controller/salesimport/DailySalesImportControllerTest.java`
+
+### 阶段 6：集成测试、真实文件验证与回归
+- **状态：** complete
+- 执行的操作：
+  - 8 个真实 MySQL 全链路集成测试：原子过账、退货加回库存、未知条码建待完善商品、行错误整批失败
+    且无销售与库存变化、两型 409、跨业务日期累计扣减、失败后可修正重导、同商品两供应商两事实一流水。
+  - 新增 `RealPosDailySalesFileImportTest`：读环境变量 `HAOWUGOU_POS_SALES_FILE` 跑真实
+    《商品销售汇总.xls》全链路，独立复算期望事实数并与文件自带合计行交叉校验，结束回滚。
+  - 全量回归 119/119 通过（应用层 41、基础设施 22、启动模块 56），0 失败 0 跳过。
+- 创建/修改的文件：
+  - `haowugou-bootstrap/src/test/java/com/haowugou/integration/DailySalesImportIntegrationTest.java`
+  - `haowugou-bootstrap/src/test/java/com/haowugou/integration/RealPosDailySalesFileImportTest.java`
+
+### 阶段 7：文档同步
+- **状态：** complete
+- 执行的操作：设计文档状态改为已验证并补实现与验证结果一节、修正数据行口径（899）；
+  同步 README（接口表/进度/测试数/销售导入说明）、CHANGELOG、progress、findings、task_plan、CLAUDE.md。
+- 创建/修改的文件：`README.md`、`CHANGELOG.md`、`progress.md`、`findings.md`、`task_plan.md`、
+  `CLAUDE.md`、`docs/superpowers/specs/2026-08-30-daily-sales-import-design.md`
+
 ## 测试结果
 | 测试 | 输入 | 预期结果 | 实际结果 | 状态 |
 |------|------|---------|---------|------|
@@ -174,6 +239,12 @@
 | 导入 MySQL 全链路集成测试 | 注入 `HAOWUGOU_DB_PASSWORD` 后执行 | 批次/原始行/库存累加/流水/失败无库存变化/409/修正重导 | 4/4 通过，回滚残留 0 | passed |
 | 全量回归 | 注入环境变量后 `mvn -pl haowugou-bootstrap -am test` | 全部 7 模块新旧测试与真实库测试 | 68/68 通过，BUILD SUCCESS | passed |
 | 真实 POS 文件冒烟测试 | jar 启动 + SQL 预置 + curl 上传《商品资料1.xls》 | 批次 POSTED、原始行 12 列 JSON、库存 20.000、流水 0→20、重复 409 | 全部通过，清理残留 0，应用已停止 | passed |
+| 销售解析器单测 | `-Dtest=PosDailySalesExcelFileParserTest` | 按表头定位 9 列、合计行/空行丢弃、缺表头、负数、损坏内容 | 9/9 通过 | passed |
+| 销售导入用例单测 | `mvn -pl haowugou-application -am test` | 校验顺序、毛利额口径、归并、退货、全零行、两型 409、参数边界 | 19/19 通过（应用层 41/41） | passed |
+| 销售导入 MockMvc 契约测试 | `-Dtest=DailySalesImportControllerTest` | POSTED/FAILED STRICT 契约、400/404/409、multipart 缺件 | 13/13 通过 | passed |
+| 销售导入 MySQL 全链路集成测试 | 注入 `HAOWUGOU_DB_PASSWORD` 后执行 | 原子过账/退货加回/待完善商品/失败无变化/两型 409/跨日累计/修正重导/双供应商归并 | 首轮 6/8（测试辅助方法 `wasNull()` 顺序缺陷），修正后 8/8 通过，回滚残留 0 | failed then fixed |
+| 真实 POS 销售文件端到端 | 注入 `HAOWUGOU_POS_SALES_FILE` 跑《商品销售汇总.xls》 | 899 行全 VALID、POSTED、事实/流水/库存一致、与文件合计行一致 | 485 事实、485 待完善商品、485 流水，数量 988.000、收入 7342.00 与合计行一致，残留 0 | passed |
+| 销售导入全量回归 | 注入环境变量后 `mvn -pl haowugou-bootstrap -am test` | 全部 7 模块新旧测试与真实库测试 | 119/119 通过（应用层 41、基础设施 22、启动模块 56），BUILD SUCCESS | passed |
 
 ## 错误日志
 | 时间戳 | 错误 | 尝试次数 | 解决方案 |
@@ -193,12 +264,15 @@
 | 2026-08-27 | 库存 upsert `AS new` 别名下右侧 `current_quantity` 歧义 | 1 | 表名限定 `store_product_inventory.current_quantity` |
 | 2026-08-27 | JSON 路径中文键经 JDBC 参数解析失败 | 1 | 读取 raw_data 后在 Java 侧断言内容 |
 | 2026-08-27 | DECIMAL(18,3) 标度差异：DB 返回 `0.000` 而非 `0` | 1 | 期望值统一用 `new BigDecimal("0.000")` |
+| 2026-08-30 | 集成测试断言 `supplierId` 得 0 而非 null（2/8 失败） | 1 | `ResultSet.wasNull()` 只反映最近一次读取，构造参数列表里后续 getter 会重置它；紧跟 `getLong` 先存下可空值 |
+| 2026-08-30 | 真实文件断言「事实数 = 非全零行数」期望 486 实际 485 | 1 | 非缺陷：同条码两个未知供应商都落 `supplier_id=NULL`，按 `supplier_key=IFNULL(supplier_id,0)` 只能合成一条；断言改为按落库供应商归并后复算 |
+| 2026-08-30 | 单类测试 `-Dtest=X` 报 No tests matching pattern（上游模块无该类） | 1 | 加 `-Dsurefire.failIfNoSpecifiedTests=false`（`-DfailIfNoTests=false` 无效） |
 
 ## 五问重启检查
 | 问题 | 答案 |
 |------|------|
-| 我在哪里？ | 全部 5 个阶段已完成，任务已交付 |
-| 我要去哪里？ | 等待用户验收与后续指示 |
-| 目标是什么？ | 复用门店列表并实现、验证三个门店范围商品查询 REST 接口 —— 已完成 |
+| 我在哪里？ | 每日销售导入与库存扣减切片 7 个阶段全部完成，已交付 |
+| 我要去哪里？ | 等待用户验收；路线图下一项是批次查询与撤销（REVERSED/REVERSAL 链路） |
+| 目标是什么？ | 按门店导入每日销售数据并扣减库存，且用真实 POS 文件验证落库 —— 已完成 |
 | 我学到了什么？ | 见 findings.md |
-| 我做了什么？ | 完成 HTTP 契约层与全量回归，36/36 测试通过，MySQL 残留 0，文档已同步 |
+| 我做了什么？ | 打通 domain→application→infrastructure→bootstrap 四层，119/119 测试通过；真实《商品销售汇总.xls》899 行落库，数量与收入与文件合计行一致，MySQL 残留 0，文档已同步 |

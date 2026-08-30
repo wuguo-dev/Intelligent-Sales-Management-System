@@ -1,4 +1,4 @@
-package com.haowugou.application.inventoryimport;
+package com.haowugou.application.inventoryimport.exception;
 
 /** 导入时指定的仓库非法：主键不合法或不属于该门店。对应 HTTP 400。 */
 public final class ImportWarehouseException extends RuntimeException {

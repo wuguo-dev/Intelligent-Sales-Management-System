@@ -1,4 +1,4 @@
-package com.haowugou.application.product;
+package com.haowugou.application.product.exception;
 
 /** 商品未在指定门店建立当前库存关系。 */
 public final class StoreProductNotFoundException extends RuntimeException {

@@ -120,3 +120,53 @@
 - 设计文档：`docs/superpowers/specs/2026-08-27-initial-inventory-import-design.md`
 - 真实 POS 文件：`C:\Users\xdj\Desktop\商品资料1.xls`（冒烟测试输入）
 - 架构规范：`好物购项目整体架构规范.md`
+
+---
+
+# 每日销售导入与库存扣减（2026-08-30）
+
+## 需求
+- 路线图第 3 项：按门店导入每日销售数据并扣减库存，核心目标是真实 POS《商品销售汇总》能入账。
+- 与上一片的关键差异：未知条码**不再整批拒绝**，而是自动建 PENDING 待完善商品后照常入账
+  （架构规范 §17.2；销售事实必须入账，否则销售额口径失真）。
+
+## 研究发现
+- 真实文件 901 行 × 15 列全文本：表头 1 行 + 899 个数据行 + 1 个合计行（条码与商品名皆空）。
+- 899 行中 413 行「数量与收入同时为 0」——POS 把当期未销售商品一并导出；只留原始行审计，
+  不写销售事实、不产生流水，也不建待完善商品。跳过条件必须取「两者同时为 0」：实测
+  「数量 0 但收入非 0」与其反向各 0 行，任一单条件都会误伤。
+- 第 4 列是「**当前**机构最后进价」而非销售当时成本：45 行「收入 − 数量 × 进价」与 POS 毛利率矛盾。
+  故毛利额只能取 `收入 × POS 毛利率 ÷ 100`，进价仅作待完善商品初值提示。
+- 文件无日期列（本期/同期区间由操作员在 POS 侧选择）→ `businessDate` 只能是必填请求参数，
+  且 `import_batch.data_date` 与 `uk_import_batch_active_sales_date` 都要求有值。
+- 毛利率空白与 0% 语义不同（前者是 POS 未报），因此缺省为 null 而非 0；数量与收入空白按 0 处理，
+  这类行本就不构成销售事实，报错只会把整批卡住。
+- 同条码的多个**未识别**供应商必然归并为一条事实：`supplier_key = IFNULL(supplier_id, 0)` 决定了
+  库层放不下两行。真实文件里正好命中一次（486 个有销售的行 → 485 条事实），归并后数量与收入求和，
+  与文件自带合计行仍逐项一致。
+- 销售事实按 `(商品, 供应商)` 落库，库存流水按**商品**汇总：前者匹配唯一键，后者保证每商品每批次
+  一条流水且余额可链式追溯（`chk_inventory_movement_balance`）。
+
+## 技术决策
+| 决策 | 理由 |
+|------|------|
+| 新建独立端口 `DailySalesFileParser`/`DailySalesImportRepository` | 行模型与写入表都不同；给 `ImportFileParser` 加第二个实现会让既有 `InitialInventoryImportConfiguration` 按类型注入变成歧义注入 |
+| 不改动初始库存导入切片任何文件 | 两片 SQL 各自独立，不引入无替换需求的抽象 |
+| 未知条码建 PENDING 商品，品类/供应商按名称匹配、匹配不到记 NULL 且不自动创建 | 避免销售文件污染主数据；商品本就是待完善 |
+| 不写 `product_supplier` 关联 | 供应商关联属商品主数据维护范围 |
+| 净销量 > 0 → SALE_OUT，< 0 → SALE_RETURN，= 0 → 无流水 | `chk_inventory_movement_nonzero` 禁止 0 变化量 |
+| 库存行不存在也插入，允许负库存 | 架构规范 §17.2；销售事实不能因缺库存行而丢 |
+| 归并行 `reported_gross_profit_rate` 记 NULL | 该列语义是 POS 原始值供核对，归并后无法归属单一原始值 |
+| 真实文件测试改为读环境变量 `HAOWUGOU_POS_SALES_FILE`，未设置则跳过 | 真实业务文件不进仓库，且不能让缺文件的机器构建失败 |
+
+## 遇到的问题
+| 问题 | 解决方案 |
+|------|---------|
+| 集成测试 `supplierId` 断言得 0 而非 null | `ResultSet.wasNull()` 只反映最近一次读取，写在构造参数列表里会被后续 getter 重置；紧跟 `getLong` 先存下可空值 |
+| 真实文件事实数比「非全零行数」少 1 | 非缺陷，是未识别供应商归并的既定行为；断言改为按落库供应商复算期望值 |
+| 期望的双供应商事实顺序反了 | `ORDER BY product_id, supplier_key` 下无供应商行的 key 为 0，排在真实供应商 id 之前 |
+| `-Dtest=X` 报 No tests matching pattern | 加 `-Dsurefire.failIfNoSpecifiedTests=false`；`-DfailIfNoTests=false` 无效 |
+
+## 资源
+- 设计文档：`docs/superpowers/specs/2026-08-30-daily-sales-import-design.md`
+- 真实 POS 文件：`C:\Users\xdj\Desktop\商品销售汇总.xls`（端到端测试输入，经环境变量传入）

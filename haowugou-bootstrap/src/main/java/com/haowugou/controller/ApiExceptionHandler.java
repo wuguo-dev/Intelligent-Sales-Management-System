@@ -1,14 +1,17 @@
 package com.haowugou.controller;
 
-import com.haowugou.application.inventoryimport.ActiveInitialBatchExistsException;
-import com.haowugou.application.inventoryimport.DuplicateImportFileException;
-import com.haowugou.application.inventoryimport.ImportWarehouseException;
-import com.haowugou.application.inventoryimport.InvalidImportFileException;
-import com.haowugou.application.operating.InvalidOperatingDataQueryException;
-import com.haowugou.application.operating.StoreNotFoundException;
-import com.haowugou.application.product.InvalidStoreProductQueryException;
-import com.haowugou.application.product.StoreProductNotFoundException;
-import com.haowugou.application.product.WarehouseNotInStoreException;
+import com.haowugou.application.inventoryimport.exception.ActiveInitialBatchExistsException;
+import com.haowugou.application.inventoryimport.exception.DuplicateImportFileException;
+import com.haowugou.application.inventoryimport.exception.ImportWarehouseException;
+import com.haowugou.application.inventoryimport.exception.InvalidImportFileException;
+import com.haowugou.application.operating.exception.InvalidOperatingDataQueryException;
+import com.haowugou.application.operating.exception.StoreNotFoundException;
+import com.haowugou.application.product.exception.InvalidStoreProductQueryException;
+import com.haowugou.application.product.exception.StoreProductNotFoundException;
+import com.haowugou.application.product.exception.WarehouseNotInStoreException;
+import com.haowugou.application.salesimport.exception.DuplicateSalesFileException;
+import com.haowugou.application.salesimport.exception.InvalidSalesImportException;
+import com.haowugou.application.salesimport.exception.PostedSalesBatchExistsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -73,6 +76,21 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(ActiveInitialBatchExistsException.class)
     ProblemDetail handleActiveInitialBatch(ActiveInitialBatchExistsException exception) {
+        return conflict(exception.getMessage());
+    }
+
+    @ExceptionHandler(InvalidSalesImportException.class)
+    ProblemDetail handleInvalidSalesImport(InvalidSalesImportException exception) {
+        return badRequest(exception.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateSalesFileException.class)
+    ProblemDetail handleDuplicateSalesFile(DuplicateSalesFileException exception) {
+        return conflict(exception.getMessage());
+    }
+
+    @ExceptionHandler(PostedSalesBatchExistsException.class)
+    ProblemDetail handlePostedSalesBatchExists(PostedSalesBatchExistsException exception) {
         return conflict(exception.getMessage());
     }
 
