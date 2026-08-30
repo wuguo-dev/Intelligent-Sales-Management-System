@@ -1,6 +1,9 @@
 package com.haowugou.application.salesimport;
 
-import com.haowugou.application.operating.StoreNotFoundException;
+import com.haowugou.application.operating.exception.StoreNotFoundException;
+import com.haowugou.application.salesimport.exception.DuplicateSalesFileException;
+import com.haowugou.application.salesimport.exception.InvalidSalesImportException;
+import com.haowugou.application.salesimport.exception.PostedSalesBatchExistsException;
 import com.haowugou.domain.importbatch.ImportBatchResult;
 import com.haowugou.domain.importbatch.ImportFailure;
 import com.haowugou.domain.importbatch.ImportFailureRow;

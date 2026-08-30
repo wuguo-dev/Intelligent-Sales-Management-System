@@ -1,4 +1,4 @@
-package com.haowugou.application.operating;
+package com.haowugou.application.operating.exception;
 
 /**
  * 请求的门店不存在或未启用。

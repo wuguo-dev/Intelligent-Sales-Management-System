@@ -33,12 +33,12 @@ HAOWUGOU_DB_PASSWORD=<密码> mvn -pl haowugou-bootstrap -am test
 依赖方向单向：`bootstrap → {agent, infrastructure, application} → domain → common`。
 
 - **domain**：领域模型 + Repository 接口（如 `StoreRepository`、`StoreProductQueryRepository`），不依赖任何框架。
-- **application**：应用用例（`OperatingDataQuery`、`StoreProductQuery`），集中做参数校验、门店校验与编排，只依赖 domain 接口，不依赖 MyBatis/Spring。
+- **application**：应用用例（`OperatingDataQuery`、`StoreProductQuery`），集中做参数校验、门店校验与编排，只依赖 domain 接口，不依赖 MyBatis/Spring。每个功能包下的应用异常统一收进 `<功能包>/exception/` 子包（如 `application.product.exception.StoreProductNotFoundException`），包根目录只留用例与结果模型。
 - **infrastructure**：`persistence/adapter/` 下 `@Repository` 实现 domain 接口；`persistence/mapper/` 下 `@Mapper` 接口 + `resources/mapper/*.xml` 原生 MyBatis 查询（新链路）；旧链路用 MyBatis Plus（`InventorySnapshotMapper` 等基于注解/Wrapper）。数据库知识只存在于本模块。
 - **bootstrap**：唯一组装点。`config/` 下每个功能模块一个显式 `@Configuration(proxyBeanMethods = false)` + `@Bean` 手工装配应用用例（不做组件扫描式自动注入）；`controller/` 只做 HTTP 参数绑定与响应模型转换，`ApiExceptionHandler` 统一把应用异常映射为 Problem Detail（404 门店/商品不存在，400 参数错误与跨门店仓库）。
 - **agent**：空壳模块（仅 pom），Agent 对话能力未开发。
 
-**改动准则**：业务规则放 application；新增查询必须把 `storeId` 下传到底；分页列表避免 N+1（参考 `StoreProductQueryMapper.xml` 固定四次查询模式：总数 + 当前页 + 供应商批量 + 销售批量）。
+**改动准则**：业务规则放 application；新增查询必须把 `storeId` 下传到底；分页列表避免 N+1（参考 `StoreProductQueryMapper.xml` 固定四次查询模式：总数 + 当前页 + 供应商批量 + 销售批量）；新增应用异常一律放进对应功能包的 `exception/` 子包，别落在包根。
 
 **导入切片**：两条导入链路各自独立（`domain.importbatch` = 初始库存、`domain.salesimport` = 每日销售），
 端口、Mapper XML 与解析器都不共用——行模型和写入表不同，且给同一端口加第二个实现会让 `config/` 里

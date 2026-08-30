@@ -1,4 +1,4 @@
-package com.haowugou.application.salesimport;
+package com.haowugou.application.salesimport.exception;
 
 /**
  * 每日销售导入的请求级错误：门店ID或业务日期非法、扩展名不支持、文件为空、无法解析、

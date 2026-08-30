@@ -1,4 +1,4 @@
-package com.haowugou.application.inventoryimport;
+package com.haowugou.application.inventoryimport.exception;
 
 /**
  * 导入文件级错误：扩展名不支持、文件为空、无法解析、表头缺失或没有数据行。

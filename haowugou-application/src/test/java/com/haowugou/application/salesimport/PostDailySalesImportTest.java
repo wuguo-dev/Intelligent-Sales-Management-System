@@ -5,7 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.haowugou.application.operating.StoreNotFoundException;
+import com.haowugou.application.operating.exception.StoreNotFoundException;
+import com.haowugou.application.salesimport.exception.DuplicateSalesFileException;
+import com.haowugou.application.salesimport.exception.InvalidSalesImportException;
+import com.haowugou.application.salesimport.exception.PostedSalesBatchExistsException;
 import com.haowugou.domain.importbatch.ImportFailure;
 import com.haowugou.domain.importbatch.ImportFileFormatException;
 import com.haowugou.domain.importbatch.ImportRowError;

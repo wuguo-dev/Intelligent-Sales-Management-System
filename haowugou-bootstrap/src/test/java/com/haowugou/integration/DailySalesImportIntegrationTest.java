@@ -8,9 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.haowugou.application.salesimport.DuplicateSalesFileException;
 import com.haowugou.application.salesimport.PostDailySalesImport;
-import com.haowugou.application.salesimport.PostedSalesBatchExistsException;
+import com.haowugou.application.salesimport.exception.DuplicateSalesFileException;
+import com.haowugou.application.salesimport.exception.PostedSalesBatchExistsException;
 import com.haowugou.domain.importbatch.ImportBatchResult;
 import com.haowugou.domain.salesimport.DailySalesImportResult;
 import com.haowugou.domain.store.Store;

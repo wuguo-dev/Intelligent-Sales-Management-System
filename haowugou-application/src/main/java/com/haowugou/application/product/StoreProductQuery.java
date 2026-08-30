@@ -1,6 +1,9 @@
 package com.haowugou.application.product;
 
-import com.haowugou.application.operating.StoreNotFoundException;
+import com.haowugou.application.operating.exception.StoreNotFoundException;
+import com.haowugou.application.product.exception.InvalidStoreProductQueryException;
+import com.haowugou.application.product.exception.StoreProductNotFoundException;
+import com.haowugou.application.product.exception.WarehouseNotInStoreException;
 import com.haowugou.domain.product.StoreProductDetail;
 import com.haowugou.domain.product.StoreProductQueryCriteria;
 import com.haowugou.domain.product.StoreProductQueryRepository;

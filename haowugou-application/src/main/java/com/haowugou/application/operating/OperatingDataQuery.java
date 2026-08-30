@@ -1,5 +1,7 @@
 package com.haowugou.application.operating;
 
+import com.haowugou.application.operating.exception.InvalidOperatingDataQueryException;
+import com.haowugou.application.operating.exception.StoreNotFoundException;
 import com.haowugou.domain.inventory.InventoryItem;
 import com.haowugou.domain.inventory.InventoryRepository;
 import com.haowugou.domain.sales.StoreDailySales;
