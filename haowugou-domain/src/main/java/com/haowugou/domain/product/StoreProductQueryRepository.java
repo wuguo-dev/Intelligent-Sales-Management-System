@@ -1,5 +1,6 @@
 package com.haowugou.domain.product;
 
+import com.haowugou.domain.pagination.PageResult;
 import java.time.LocalDate;
 import java.util.Optional;
 

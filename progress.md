@@ -219,6 +219,78 @@
 - 创建/修改的文件：`README.md`、`CHANGELOG.md`、`progress.md`、`findings.md`、`task_plan.md`、
   `CLAUDE.md`、`docs/superpowers/specs/2026-08-30-daily-sales-import-design.md`
 
+## 会话：2026-08-30（导入批次查询与撤销）
+
+### 阶段 1：设计与迁移方案
+- **状态：** complete
+- 执行的操作：
+  - 按用户选定的路线图第 4 项写设计文档，定端口边界、撤销语义、事务顺序与接口契约。
+  - 核查建表脚本：撤销所需字段（`reversed_at`/`reversed_by`/`reversed_reason`/`reversal_of_id`
+    与两条 REVERSAL 约束）已就位，**唯一缺口是文件指纹唯一键不含状态**——撤销后重传会被查重挡住。
+  - 用户确认复用 `domain.importbatch`（不另建包）：撤销逻辑与批次类型无关，
+    两条导入链路的行模型差异不影响「取反 + 串余额链」。
+- 创建/修改的文件：
+  - `docs/superpowers/specs/2026-08-30-import-batch-reversal-design.md`
+  - `database/migration/2026-08-30-import-batch-active-file-hash.sql`
+  - `database/好物购数据库建表.sql`（新增 `active_file_hash` 生成列与对应唯一键）
+
+### 阶段 2：domain 端口与值对象
+- **状态：** complete
+- 执行的操作：新增批次查询与撤销两个端口、批次列表项/详情/问题行/查询条件/撤销请求与结果值对象、
+  `ImportBatchStatus` 与 `ImportType` 枚举；`PageResult` 从 `domain.product` 移到 `domain.pagination`
+  供两个切片共用。
+- 创建/修改的文件：`haowugou-domain/src/main/java/com/haowugou/domain/importbatch/*`、
+  `haowugou-domain/src/main/java/com/haowugou/domain/pagination/PageResult.java`
+
+### 阶段 3：application 用例与单测
+- **状态：** complete
+- 执行的操作：`ImportBatchQuery`（门店校验、分页与日期区间校验、问题行分页）与
+  `ReverseImportBatch`（操作人/原因必填、可撤销性判定、并发下撤销失败按 409）；
+  13 个内存替身单测，应用层累计 54/54 通过。
+- 创建/修改的文件：`haowugou-application/src/main/java/com/haowugou/application/importbatch/**`、
+  `haowugou-application/src/test/java/com/haowugou/application/importbatch/*`
+
+### 阶段 4：infrastructure 实现
+- **状态：** complete
+- 执行的操作：`ImportBatchAdminMapper` + XML 共 11 条语句（批次分页两查、详情、问题行两查、
+  原流水、当前余额、`CASE product_id` 批量回滚、反向流水插入、`markReversed`）；
+  两条导入链路的 `countBatchByFileHash` 改查 `active_file_hash`。
+  撤销事务先翻状态兼作乐观锁与行锁，反向流水与原流水 1:1，`balance_before` 取库内当前值。
+- 创建/修改的文件：
+  `haowugou-infrastructure/src/main/java/com/haowugou/infrastructure/persistence/importbatch/*`、
+  `haowugou-infrastructure/src/main/resources/mapper/ImportBatchAdminMapper.xml`、
+  `mapper/ImportBatchMapper.xml`、`mapper/DailySalesImportMapper.xml`
+
+### 阶段 5：bootstrap 接口与契约
+- **状态：** complete
+- 执行的操作：三个 REST 接口（列表、详情、撤销）+ 7 个响应模型 + `ImportBatchAdminConfiguration`
+  手工装配；12 个 MockMvc 契约测试（STRICT JSON、筛选条件全量下传断言、400/404/409）首轮即通过。
+- 创建/修改的文件：`haowugou-bootstrap/src/main/java/com/haowugou/controller/importbatch/*`、
+  `haowugou-bootstrap/src/main/java/com/haowugou/config/ImportBatchAdminConfiguration.java`、
+  `haowugou-bootstrap/src/test/java/com/haowugou/controller/importbatch/ImportBatchControllerTest.java`
+
+### 阶段 6：集成测试（已编写，未实跑）
+- **状态：** blocked —— 等待 `active_file_hash` 迁移在本地库执行
+- 执行的操作：
+  - 写 7 个真实 MySQL 全链路集成测试（三条链路 Mapper 装进同一 `Configuration`，一个事务末尾整体回滚）。
+  - 核查本地库：`reversed_*` 列已在，`active_file_hash` 列不在。迁移命令被权限分类器拦下，未绕行。
+  - 确认迁移数据安全：`import_batch` 0 行，无重复 POSTED `(store_id, import_type, file_hash)` 元组，
+    新键严格窄于被替换的旧键。
+  - 无凭据全量回归 151 个测试通过、20 个按环境变量跳过（含本切片 7 个），BUILD SUCCESS。
+- 待办：用户执行迁移后跑
+  `mvn -pl haowugou-bootstrap -am test -Dtest=ImportBatchReversalIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false`。
+  注意迁移未执行时，两条导入链路的既有集成测试也会因 `Unknown column 'active_file_hash'` 失败。
+- 创建/修改的文件：
+  `haowugou-bootstrap/src/test/java/com/haowugou/integration/ImportBatchReversalIntegrationTest.java`
+
+### 阶段 7：文档同步
+- **状态：** complete
+- 执行的操作：README（接口表 +3、进度、测试数 119→151）、CHANGELOG（新增切片 + 唯一键变更）、
+  CLAUDE.md（批次查询与撤销小节、三个生成列同口径、两条 REVERSAL 约束、测试规模）、
+  设计文档状态、progress.md。
+- 创建/修改的文件：`README.md`、`CHANGELOG.md`、`CLAUDE.md`、`progress.md`、
+  `docs/superpowers/specs/2026-08-30-import-batch-reversal-design.md`
+
 ## 测试结果
 | 测试 | 输入 | 预期结果 | 实际结果 | 状态 |
 |------|------|---------|---------|------|
@@ -245,6 +317,10 @@
 | 销售导入 MySQL 全链路集成测试 | 注入 `HAOWUGOU_DB_PASSWORD` 后执行 | 原子过账/退货加回/待完善商品/失败无变化/两型 409/跨日累计/修正重导/双供应商归并 | 首轮 6/8（测试辅助方法 `wasNull()` 顺序缺陷），修正后 8/8 通过，回滚残留 0 | failed then fixed |
 | 真实 POS 销售文件端到端 | 注入 `HAOWUGOU_POS_SALES_FILE` 跑《商品销售汇总.xls》 | 899 行全 VALID、POSTED、事实/流水/库存一致、与文件合计行一致 | 485 事实、485 待完善商品、485 流水，数量 988.000、收入 7342.00 与合计行一致，残留 0 | passed |
 | 销售导入全量回归 | 注入环境变量后 `mvn -pl haowugou-bootstrap -am test` | 全部 7 模块新旧测试与真实库测试 | 119/119 通过（应用层 41、基础设施 22、启动模块 56），BUILD SUCCESS | passed |
+| 批次查询与撤销用例单测 | `mvn -pl haowugou-application -am test` | 分页/日期区间校验、跨门店拒绝、状态非 POSTED 拒绝、操作人与原因必填 | 13/13 通过（应用层 54/54） | passed |
+| 批次接口 MockMvc 契约测试 | `-Dtest=ImportBatchControllerTest` | 列表/详情/撤销 STRICT JSON、筛选条件全量下传、400/404/409 | 12/12 首轮通过 | passed |
+| 批次撤销 MySQL 全链路集成测试 | 需先执行 `active_file_hash` 迁移 | 库存与余额链复原、撤销后同文件同日期重传、重复撤销拒绝、撤初始库存转负、跨门店隔离、失败批次问题行与不可撤销、问题行独立分页 | **未实跑**：迁移未应用，7 个测试按环境变量跳过 | blocked |
+| 批次切片全量回归（无凭据） | `mvn -pl haowugou-bootstrap -am test` | 全部模块编译且单测与契约测试通过、集成测试按门跳过 | 151 通过 / 20 跳过 / 0 失败，BUILD SUCCESS | passed |
 
 ## 错误日志
 | 时间戳 | 错误 | 尝试次数 | 解决方案 |
@@ -267,12 +343,14 @@
 | 2026-08-30 | 集成测试断言 `supplierId` 得 0 而非 null（2/8 失败） | 1 | `ResultSet.wasNull()` 只反映最近一次读取，构造参数列表里后续 getter 会重置它；紧跟 `getLong` 先存下可空值 |
 | 2026-08-30 | 真实文件断言「事实数 = 非全零行数」期望 486 实际 485 | 1 | 非缺陷：同条码两个未知供应商都落 `supplier_id=NULL`，按 `supplier_key=IFNULL(supplier_id,0)` 只能合成一条；断言改为按落库供应商归并后复算 |
 | 2026-08-30 | 单类测试 `-Dtest=X` 报 No tests matching pattern（上游模块无该类） | 1 | 加 `-Dsurefire.failIfNoSpecifiedTests=false`（`-DfailIfNoTests=false` 无效） |
+| 2026-08-30 | 撤销集成测试辅助方法又踩 `wasNull()` 顺序（读 `active_initial_inventory` 后被下一个 getter 重置） | 1 | 与销售切片同一根因：紧跟 `getInt` 立即记录标志位，不要留到构造参数列表里 |
+| 2026-08-30 | `active_file_hash` 迁移命令被权限分类器拦下 | 1 | 不绕行。改为核查迁移数据安全性后交用户手工执行，测试写好待跑 |
 
 ## 五问重启检查
 | 问题 | 答案 |
 |------|------|
-| 我在哪里？ | 每日销售导入与库存扣减切片 7 个阶段全部完成，已交付 |
-| 我要去哪里？ | 等待用户验收；路线图下一项是批次查询与撤销（REVERSED/REVERSAL 链路） |
-| 目标是什么？ | 按门店导入每日销售数据并扣减库存，且用真实 POS 文件验证落库 —— 已完成 |
-| 我学到了什么？ | 见 findings.md |
-| 我做了什么？ | 打通 domain→application→infrastructure→bootstrap 四层，119/119 测试通过；真实《商品销售汇总.xls》899 行落库，数量与收入与文件合计行一致，MySQL 残留 0，文档已同步 |
+| 我在哪里？ | 导入批次查询与撤销切片：代码四层与文档完成，集成测试已写但因迁移未应用尚未实跑 |
+| 我要去哪里？ | 用户执行 `database/migration/2026-08-30-import-batch-active-file-hash.sql` 后跑集成测试与全量回归，再提交 |
+| 目标是什么？ | 补上前两个导入切片的缺口：批次可查、可撤销、撤销后同文件同日期可重传 |
+| 我学到了什么？ | 见 findings.md；本轮要点是三个生成列同口径（只有 POSTED 占坑）让撤销一次释放全部约束 |
+| 我做了什么？ | 打通四层：2 端口 + 2 用例 + 11 条 SQL + 3 个接口；13 个用例单测与 12 个契约测试通过，151 通过/20 跳过；7 个真实库集成测试待迁移后验证 |

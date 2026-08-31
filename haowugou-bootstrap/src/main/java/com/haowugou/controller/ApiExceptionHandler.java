@@ -1,5 +1,8 @@
 package com.haowugou.controller;
 
+import com.haowugou.application.importbatch.exception.BatchNotReversibleException;
+import com.haowugou.application.importbatch.exception.ImportBatchNotFoundException;
+import com.haowugou.application.importbatch.exception.InvalidImportBatchQueryException;
 import com.haowugou.application.inventoryimport.exception.ActiveInitialBatchExistsException;
 import com.haowugou.application.inventoryimport.exception.DuplicateImportFileException;
 import com.haowugou.application.inventoryimport.exception.ImportWarehouseException;
@@ -94,6 +97,24 @@ public class ApiExceptionHandler {
         return conflict(exception.getMessage());
     }
 
+    @ExceptionHandler(ImportBatchNotFoundException.class)
+    ProblemDetail handleImportBatchNotFound(ImportBatchNotFoundException exception) {
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+        detail.setTitle("导入批次不存在");
+        return detail;
+    }
+
+    @ExceptionHandler(InvalidImportBatchQueryException.class)
+    ProblemDetail handleInvalidImportBatchQuery(InvalidImportBatchQueryException exception) {
+        return badRequest(exception.getMessage());
+    }
+
+    /** 批次状态不是 POSTED，含并发下已被别的请求撤销的情况。 */
+    @ExceptionHandler(BatchNotReversibleException.class)
+    ProblemDetail handleBatchNotReversible(BatchNotReversibleException exception) {
+        return conflict(exception.getMessage(), "批次不可撤销");
+    }
+
     @ExceptionHandler(MissingServletRequestParameterException.class)
     ProblemDetail handleMissingParameter(MissingServletRequestParameterException exception) {
         return badRequest("缺少请求参数: " + exception.getParameterName());
@@ -131,8 +152,12 @@ public class ApiExceptionHandler {
     }
 
     private ProblemDetail conflict(String message) {
+        return conflict(message, "导入冲突");
+    }
+
+    private ProblemDetail conflict(String message, String title) {
         ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
-        detail.setTitle("导入冲突");
+        detail.setTitle(title);
         return detail;
     }
 }

@@ -1,4 +1,4 @@
-package com.haowugou.domain.product;
+package com.haowugou.domain.pagination;
 
 import java.util.List;
 

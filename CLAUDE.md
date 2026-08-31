@@ -48,6 +48,19 @@ SHA-256 内容查重，EasyExcel 按表头名而非列序定位，整行文本�
 两者的行级错误策略相反：初始库存遇未知条码整批 FAILED，每日销售则建 `PENDING` 商品后照常入账
 （销售事实不能因主数据缺失而丢）。
 
+**批次查询与撤销**：与两条导入链路相反，这一片是**跨类型共用**的——批次查询/撤销端口
+（`ImportBatchQueryRepository`、`ImportBatchReversalRepository`）复用 `domain.importbatch`，
+底下只有一个 `ImportBatchAdminMapper` + `ImportBatchAdminMapper.xml`，因为撤销逻辑与批次类型无关：
+原流水是 `INITIAL_BALANCE` 还是 `SALE_OUT`/`SALE_RETURN`，都是「取反 + 串余额链」。
+撤销单事务顺序是**先翻状态**（`UPDATE ... WHERE status = 'POSTED'` 兼作乐观锁与行锁，影响 0 行即
+并发下已被撤销，直接干净拒绝）→ 读原流水 → 读当前余额 → 回滚库存 → 写反向流水。反向流水的
+`balance_before` 必须取库里的**当前**值而不是原流水的 `balance_after`（中间可能已有别的批次动过库存），
+所以这段计算只能落在 infrastructure；`business_date` 沿用原流水，撤销不改变业务归属日期。
+撤销允许库存变负（撤初始库存而后续销售已扣过），硬拦会让「撤错的期初」变成无法收拾的状态。
+失败批次不许撤销（没产生过库存变化）；重复撤销按 409 拒绝。
+`import_raw_row` 的外键只有 `batch_id` 没有 `store_id`，查问题行必须 `JOIN import_batch` 带上
+`store_id`，否则传别家 batchId 能读到对方数据。
+
 ## 领域与数据库契约
 
 - 数据模型 11 表 2 视图，定义于 `database/好物购数据库建表.sql`（非 git 仓库文档中引用的名字）。
@@ -57,8 +70,15 @@ SHA-256 内容查重，EasyExcel 按表头名而非列序定位，整行文本�
 - 日期指标口径：未传日期范围时指标为 null（不假定全历史）；传了日期则统计该门店有效批次在闭区间内的销量/销售额/毛利额。
 - 旧链路（`store_daily_sales`、`inventory_snapshot` 表）在新版脚本中不存在，属已知遗留，只记录不擅自重构。
 - `daily_product_sales` 唯一键按 `supplier_key = IFNULL(supplier_id, 0)`：同批次同商品的多个**未识别**供应商只能落一条记录，写入前必须在应用层按该口径归并（数量与收入求和，`reported_gross_profit_rate` 记 NULL）。
-- `import_batch` 用生成列 + 唯一键表达业务不变量：`active_sales_date`（每店每业务日期只能有一个有效销售批次）、`active_initial_inventory`（每店只能有一个有效初始库存批次）、`file_hash`（同店同类型同内容只能导一次）。失败批次的 `file_hash` 同样占键，改内容后哈希变化即可重导。
-- `inventory_movement` 有 `quantity_change <> 0` 与 `balance_after = balance_before + quantity_change` 两条 CHECK：净销量为 0 的商品不能写流水。
+- `import_batch` 用生成列 + 唯一键表达业务不变量，三者口径一致（都只在 `status = 'POSTED'` 时占坑，
+  非 POSTED 一律置 NULL 释放）：`active_sales_date`（每店每业务日期只能有一个有效销售批次）、
+  `active_initial_inventory`（每店只能有一个有效初始库存批次）、`active_file_hash`（同店同类型同内容
+  只能有一个有效批次）。因此**撤销会同时释放全部三个坑位**，同一份文件、同一业务日期可原样重传——
+  这正是撤销的业务价值（业务日期填错时文件本身没问题，「改内容让哈希变化」不成立）。
+  查重 SQL 必须查 `active_file_hash` 而非 `file_hash`（`file_hash` 只留档不参与唯一键）。
+  `active_file_hash` 是后加的，见 `database/migration/2026-08-30-import-batch-active-file-hash.sql`
+  （不幂等，重复执行报 1060）。
+- `inventory_movement` 有 `quantity_change <> 0` 与 `balance_after = balance_before + quantity_change` 两条 CHECK：净销量为 0 的商品不能写流水。撤销侧还有 `chk_inventory_movement_reversal_ref`（`REVERSAL` ⇔ `reversal_of_id` 非空）与 `uk_inventory_movement_reversal (reversal_of_id)`：每条原流水最多被冲销一次，所以反向流水必须与原流水 1:1，不能按商品归并后只写一条。
 - SQL 细节：`import_raw_row.row_number` 是 MySQL 8 保留字，必须反引号；库存 upsert 用 8.0.19+ 行别名 `AS new`，右侧同名列要表名限定。
 
 ## 配置与凭据
@@ -78,5 +98,5 @@ SHA-256 内容查重，EasyExcel 按表头名而非列序定位，整行文本�
   `HAOWUGOU_POS_SALES_FILE` 取路径，未设置或文件不存在时跳过。
 - 单跑一个测试类要加 `-Dsurefire.failIfNoSpecifiedTests=false`（上游模块没有该类会报
   No tests matching pattern，`-DfailIfNoTests=false` 无效）。
-- 现有规模：应用层 41 + 基础设施 22（含 6 个真实 MySQL 集成）+ 启动模块 56（含 12 个真实 MySQL
-  全链路集成与 1 个真实 POS 文件端到端）= 119 个测试。
+- 现有规模：应用层 54 + 基础设施 22（含 6 个真实 MySQL 集成）+ 启动模块 75（含 19 个真实 MySQL
+  全链路集成与 1 个真实 POS 文件端到端）= 151 个测试。

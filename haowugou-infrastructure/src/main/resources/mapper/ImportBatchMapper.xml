@@ -4,12 +4,16 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.haowugou.infrastructure.persistence.importbatch.ImportBatchMapper">
 
+    <!--
+      查 active_file_hash 而非 file_hash：撤销与失败的批次会把生成列置空、释放坑位，
+      同一份文件才能在撤销后重传（uk_import_batch_active_file_hash 同口径）。
+    -->
     <select id="countBatchByFileHash" resultType="long">
         SELECT COUNT(*)
         FROM import_batch
         WHERE store_id = #{storeId}
           AND import_type = 'INITIAL_INVENTORY'
-          AND file_hash = #{fileHash}
+          AND active_file_hash = #{fileHash}
     </select>
 
     <select id="countActiveInitialBatch" resultType="long">

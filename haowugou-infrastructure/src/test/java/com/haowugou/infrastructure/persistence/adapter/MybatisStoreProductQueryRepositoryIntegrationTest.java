@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.haowugou.domain.pagination.PageResult;
 import com.haowugou.domain.product.InventoryStatus;
-import com.haowugou.domain.product.PageResult;
 import com.haowugou.domain.product.ProductDataStatus;
 import com.haowugou.domain.product.StoreProductDetail;
 import com.haowugou.domain.product.StoreProductListItem;

@@ -1,6 +1,6 @@
 package com.haowugou.infrastructure.persistence.adapter;
 
-import com.haowugou.domain.product.PageResult;
+import com.haowugou.domain.pagination.PageResult;
 import com.haowugou.domain.product.PeriodSalesMetrics;
 import com.haowugou.domain.product.StoreProductDetail;
 import com.haowugou.domain.product.StoreProductListItem;

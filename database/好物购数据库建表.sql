@@ -217,9 +217,17 @@ CREATE TABLE IF NOT EXISTS `import_batch` (
                                                       ELSE NULL
                                                       END
                                                   ) STORED COMMENT '有效初始库存标记',
+                                              `active_file_hash` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin
+                                                  GENERATED ALWAYS AS (
+                                                  CASE
+                                                      WHEN `status` = 'POSTED' THEN `file_hash`
+                                                      ELSE NULL
+                                                      END
+                                                  ) STORED COMMENT '有效批次的文件指纹；非 POSTED 释放坑位，允许撤销后重传同一文件',
                                               PRIMARY KEY (`id`),
                                               UNIQUE KEY `uk_import_batch_id_store` (`id`, `store_id`),
-                                              UNIQUE KEY `uk_import_batch_file_hash` (`store_id`, `import_type`, `file_hash`),
+                                              UNIQUE KEY `uk_import_batch_active_file_hash`
+                                                  (`store_id`, `import_type`, `active_file_hash`),
                                               UNIQUE KEY `uk_import_batch_active_sales_date` (`store_id`, `active_sales_date`),
                                               UNIQUE KEY `uk_import_batch_active_initial` (`store_id`, `active_initial_inventory`),
                                               KEY `idx_import_batch_store_date_status` (`store_id`, `data_date`, `status`),

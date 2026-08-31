@@ -161,3 +161,47 @@
 - 端到端测试输入《商品销售汇总.xls》，899 数据行落库后数量 988.000、收入 7342.00
   与文件自带合计行一致；测试结束回滚，残留 0。
 - 路线图下一项：批次查询与撤销（REVERSED/REVERSAL 链路）。
+
+# 任务：导入批次查询、撤销与同日重传
+
+## 目标
+补上前两个导入切片的缺口：按门店查批次（分页 + 类型/状态/日期筛选 + 问题行明细）、
+撤销已入账批次（回滚库存、写反向流水、不删事实）、撤销后同文件同业务日期可原样重传。
+
+## 当前阶段
+代码四层与文档完成，13 个用例单测 + 12 个契约测试通过，全量 151 通过 / 20 跳过。
+**阻塞项**：`active_file_hash` 迁移未在本地库执行，7 个真实 MySQL 集成测试尚未实跑。
+
+## 各阶段
+- [x] 设计文档 + 数据库现状核查 + 迁移脚本 — complete
+- [x] domain 端口与值对象（复用 `domain.importbatch`）— complete
+- [x] application `ImportBatchQuery` + `ReverseImportBatch` + 13 个单测 — complete
+- [x] infrastructure `ImportBatchAdminMapper` + XML 11 条语句 — complete
+- [x] bootstrap 三个接口 + 响应模型 + 配置 + 12 个契约测试 — complete
+- [ ] 真实 MySQL 全链路集成测试 7 项 — 已编写，待迁移后实跑
+- [x] 文档同步（设计文档/README/CHANGELOG/progress/findings/task_plan/CLAUDE.md）— complete
+
+## 已做决策
+| 决策 | 理由 |
+|------|------|
+| 复用 `domain.importbatch`，只建一个 Admin Mapper | 用户明确要求；撤销逻辑与批次类型无关 |
+| 文件指纹唯一键改建在生成列 `active_file_hash` 上 | 业务日期填错时文件本身没问题，「改内容让哈希变化」不成立 |
+| 撤销事务先翻状态，兼作乐观锁与行锁 | 影响 0 行即并发下已被撤销，干净拒绝而非撞约束 |
+| 反向流水与原流水 1:1 并串余额链 | `uk_inventory_movement_reversal` 不允许一条原流水被冲销两次 |
+| `balance_before` 由 infrastructure 取库内当前值 | 中间可能已有别的批次动过库存 |
+| 允许撤销把库存打成负数 | 硬拦会让「撤错的期初」无法收拾 |
+| 失败批次不可撤销 | 没产生过库存变化 |
+| 迁移交用户手工执行 | 权限分类器拦下该命令，不绕行 |
+
+## 关键问题
+1. 撤销需要新增字段吗？（几乎不需要，唯一缺口是文件指纹唯一键不含状态）
+2. 反向流水能按商品归并吗？（不能，`uk_inventory_movement_reversal` 要求 1:1）
+3. 撤销后销售事实要删吗？（不删，`v_posted_daily_product_sales` 已在库层按状态过滤）
+4. 撤销把库存打成负数要拦吗？（不拦，见上表）
+
+## 备注
+- 迁移未执行时，两条导入链路的**既有**集成测试也会因 `Unknown column 'active_file_hash'` 失败
+  （`countBatchByFileHash` 已改查生成列）。
+- 迁移后验证命令：
+  `mvn -pl haowugou-bootstrap -am test -Dtest=ImportBatchReversalIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false`
+- 提交与推送待用户确认。

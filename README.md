@@ -16,11 +16,13 @@
   批次与原始行留审计、库存累加、写库存流水；可选仓库分配（不传则待分配，后续编辑页面指定）；
 - 每日销售导入与库存扣减纵向切片：POS 商品销售汇总（.xls / .xlsx）按业务日期上传 → 单事务写销售事实
   与库存扣减流水（SALE_OUT / 退货 SALE_RETURN），未知条码自动建待完善商品后仍照常入账；
+- 导入批次查询与撤销纵向切片：批次分页列表（按类型/状态/数据日期筛选）、批次详情与问题行分页、
+  撤销已入账批次（翻 REVERSED、按原流水写反向流水、回滚库存），撤销后同一份文件可原样重传；
 - 统一的参数错误和门店不可用 Problem Detail 响应；
-- 119 个测试：应用层 41、基础设施 22（含 6 个真实 MySQL 集成）、启动模块 56
-  （含 23 个导入契约测试、12 个真实 MySQL 全链路集成与 1 个真实 POS 文件端到端）。
+- 151 个测试：应用层 54、基础设施 22（含 6 个真实 MySQL 集成）、启动模块 75
+  （含 35 个导入与批次契约测试、19 个真实 MySQL 全链路集成与 1 个真实 POS 文件端到端）。
 
-尚未实现：Agent 对话、模型调用、经营分析、库存预警、商品资料导入与商品编辑写接口、批次查询与撤销、
+尚未实现：Agent 对话、模型调用、经营分析、库存预警、商品资料导入与商品编辑写接口、
 仓库批量分配、权限与前端页面。
 
 ## 模块结构
@@ -58,6 +60,9 @@ infrastructure。未来新增 REST 接口或 Agent Tool 时，可以复用应用
 | `GET` | `/api/stores/{storeId}/warehouses` | 查询指定门店的已启用仓库 |
 | `POST` | `/api/stores/{storeId}/inventory/import` | 上传 POS 商品资料 Excel 导入初始库存 |
 | `POST` | `/api/stores/{storeId}/sales/import?businessDate=2026-08-29` | 上传 POS 商品销售汇总 Excel 导入日销售并扣减库存 |
+| `GET` | `/api/stores/{storeId}/import-batches` | 查询指定门店的导入批次分页列表 |
+| `GET` | `/api/stores/{storeId}/import-batches/{batchId}` | 查询单个批次详情与问题行分页 |
+| `POST` | `/api/stores/{storeId}/import-batches/{batchId}/reverse` | 撤销已入账批次并回滚库存 |
 
 日期参数统一使用 `yyyy-MM-dd`。门店不存在或未启用时返回 HTTP 404；参数不符合应用约束时返回
 HTTP 400。门店商品分页接口支持条码/名称关键字、品类、供应商、仓库、库存状态、库存范围、商品

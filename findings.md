@@ -170,3 +170,54 @@
 ## 资源
 - 设计文档：`docs/superpowers/specs/2026-08-30-daily-sales-import-design.md`
 - 真实 POS 文件：`C:\Users\xdj\Desktop\商品销售汇总.xls`（端到端测试输入，经环境变量传入）
+
+# 导入批次查询与撤销
+
+## 需求
+补上前两个导入切片的缺口：两个 409 异常的注释都写着「需先撤销后才能重新导入」，但撤销链路不存在，
+批次导错只能改库。要三件事：批次可查（分页 + 筛选 + 问题行明细）、已入账批次可撤销（回滚库存但
+不删事实）、撤销后同一份文件同一业务日期可原样重传。
+
+## 研究发现
+- **撤销所需的表结构基本已就位**：`reversed_at`/`reversed_by`/`reversed_reason`、
+  `inventory_movement.reversal_of_id`、`chk_inventory_movement_reversal_ref`
+  （`REVERSAL` ⇔ `reversal_of_id` 非空）与 `uk_inventory_movement_reversal (reversal_of_id)` 都在。
+  唯一缺口是 `uk_import_batch_file_hash` 不含状态维度——撤销后重传会被查重挡住。
+- **`uk_inventory_movement_reversal` 决定了反向流水必须 1:1**，不能按商品归并成一条。
+  于是同商品多条原流水要串余额链：上一条的 `balance_after` 就是下一条的 `balance_before`，
+  链尾等于回滚后库存，才能同时满足 1:1 与 `chk_inventory_movement_balance`。
+- **三个生成列口径一致（都只在 `status = 'POSTED'` 时占坑）**，所以撤销一次动作同时释放
+  业务日期坑位、初始库存坑位和文件指纹坑位——「撤销后原样重传」不需要额外代码，是约束设计的结果。
+- **`v_posted_daily_product_sales` 已在库层过滤 `status = 'POSTED'`**：批次翻 REVERSED 后销售事实
+  自动从所有分析查询中消失，`daily_product_sales` 一行不用删，审计链完整。
+- **`import_raw_row` 的外键只有 `batch_id`，没有 `store_id`**（其余批次相关表都是复合外键）。
+  查问题行必须 `JOIN import_batch` 把 `store_id` 放进条件，否则传别家的 batchId 能读到对方数据。
+- 撤销与批次类型无关：原流水是 `INITIAL_BALANCE` 还是 `SALE_OUT`/`SALE_RETURN`，都是「取反 + 串链」。
+  这和两条导入链路必须各自独立恰好相反——所以这一片复用 `domain.importbatch`，只有一个 Admin Mapper。
+- 导入链路目前不写 `operator_name`（没有认证体系），批次详情该字段始终为 null；
+  撤销则强制要求操作人与原因，是当前唯一有操作人留痕的写动作。
+
+## 技术决策
+| 决策 | 理由 |
+|------|------|
+| 复用 `domain.importbatch`，不新建包 | 用户明确要求；撤销逻辑与批次类型无关，不存在导入链路那种行模型分歧 |
+| 文件指纹唯一键改建在新生成列 `active_file_hash` 上 | 真实场景是业务日期填错（文件本身没问题），唯一键又不含 `data_date`，「改内容让哈希变化」不成立；与另两个生成列统一口径 |
+| FAILED 也释放指纹坑位 | 失败批次没产生任何业务数据，修好外部原因（如先补商品资料）后重传属正常操作 |
+| 撤销事务**先翻状态**再读写 | `UPDATE ... WHERE status='POSTED'` 兼作乐观锁与行锁，影响 0 行即并发下已被撤销，干净拒绝；先读后写会留下双份反向流水把余额链算错一倍的窗口 |
+| `balance_before` 取库内当前值而非原流水的 `balance_after` | 中间可能已有别的批次动过库存；这段计算只能落在 infrastructure，应用层拿不到也不该拿 |
+| 反向流水沿用原流水的 `business_date` | 撤销是纠正入账动作，不改变业务归属日期 |
+| 允许撤销把库存打成负数 | 撤初始库存而后续销售已扣过时必然为负；硬拦会让「撤错的期初」变成无法收拾的状态 |
+| 失败批次不可撤销（409） | 没产生过库存变化，撤销没有语义 |
+| 撤销用 `POST .../reverse` 而非 `DELETE` | 不删资源，是受控状态流转 + 写新流水，语义上是动作 |
+| 问题行只返回非 VALID 行且独立分页 | 失败批次问题行可能上千条，批次元信息不该跟着翻页 |
+
+## 遇到的问题
+| 问题 | 解决方案 |
+|------|---------|
+| 集成测试辅助方法又踩 `wasNull()` 顺序 | 与销售切片同一根因；紧跟 `getInt` 立即记录标志位，别留到构造参数列表 |
+| `active_file_hash` 迁移命令被权限分类器拦下 | 不绕行。先核查迁移数据安全（0 行、无重复元组、新键严格窄于旧键），交用户手工执行 |
+| 流水断言不能依赖插入顺序 | 查询固定 `ORDER BY movement_type = 'REVERSAL', product_id, id`，原流水在前反向在后 |
+
+## 资源
+- 设计文档：`docs/superpowers/specs/2026-08-30-import-batch-reversal-design.md`
+- 迁移脚本：`database/migration/2026-08-30-import-batch-active-file-hash.sql`（不幂等，重复执行报 1060）
