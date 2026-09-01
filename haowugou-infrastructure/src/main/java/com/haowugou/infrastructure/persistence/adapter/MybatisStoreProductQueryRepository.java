@@ -125,6 +125,7 @@ public class MybatisStoreProductQueryRepository implements StoreProductQueryRepo
                 row.getWarehouseId(),
                 row.getWarehouseCode(),
                 row.getWarehouseName(),
+                row.getSalePrice(),
                 supplierNames,
                 row.getCurrentQuantity(),
                 row.getInventoryStatus(),

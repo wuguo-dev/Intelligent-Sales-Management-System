@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.haowugou.infrastructure.persistence.user.AppUserMapper">
+
+    <sql id="userColumns">
+        u.id,
+        u.username,
+        u.password_hash,
+        u.display_name,
+        u.role_id,
+        u.store_id
+    </sql>
+
+    <!--
+      登录名的比较由列排序规则 utf8mb4_bin 决定，天然区分大小写，这里不再额外加 BINARY：
+      加了会让 uk_app_user_username 索引失效变成全表扫描。
+    -->
+    <select id="findActiveByUsername"
+            resultType="com.haowugou.infrastructure.persistence.user.AppUserRow">
+        SELECT
+        <include refid="userColumns"/>
+        FROM app_user u
+        WHERE u.username = #{username}
+          AND u.is_active = 1
+    </select>
+
+    <select id="findActiveById"
+            resultType="com.haowugou.infrastructure.persistence.user.AppUserRow">
+        SELECT
+        <include refid="userColumns"/>
+        FROM app_user u
+        WHERE u.id = #{id}
+          AND u.is_active = 1
+    </select>
+
+    <update id="updateLastLoginAt">
+        UPDATE app_user
+        SET last_login_at = #{loginAt}
+        WHERE id = #{id}
+    </update>
+
+</mapper>

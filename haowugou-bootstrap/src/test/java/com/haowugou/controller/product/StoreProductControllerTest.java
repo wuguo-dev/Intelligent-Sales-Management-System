@@ -2,6 +2,7 @@ package com.haowugou.controller.product;
 
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -22,16 +23,24 @@ import com.haowugou.domain.product.StoreProductQueryCriteria;
 import com.haowugou.domain.product.StoreProductQueryRepository;
 import com.haowugou.domain.store.Store;
 import com.haowugou.domain.store.StoreRepository;
+import com.haowugou.domain.user.AppUser;
+import com.haowugou.domain.user.UserRole;
 import com.haowugou.domain.warehouse.WarehouseRepository;
 import com.haowugou.domain.warehouse.WarehouseSummary;
+import com.haowugou.security.AppUserPrincipal;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.json.JsonCompareMode;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -69,7 +78,16 @@ class StoreProductControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(new StoreProductController(storeProductQuery))
                 .setControllerAdvice(new ApiExceptionHandler())
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
+                // standalone 模式没有安全过滤器链，@AuthenticationPrincipal 的解析器得手工注册。
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();
+        // 默认以管理员身份发起请求：绝大多数用例断言的是完整投影，只有普通用户用例需要改身份。
+        authenticate(admin());
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -92,6 +110,7 @@ class StoreProductControllerTest {
                             "warehouseId":5,
                             "warehouseCode":"W-01",
                             "warehouseName":"日化仓",
+                            "salePrice":5.0000,
                             "supplierNames":["天和日化"],
                             "currentQuantity":-3.000,
                             "inventoryStatus":"NEGATIVE",
@@ -281,11 +300,111 @@ class StoreProductControllerTest {
     }
 
     @Test
+    void listProductsGivesNormalUserOnlyPriceQuantityAndWarehouse() throws Exception {
+        authenticate(normalUser());
+
+        mockMvc.perform(get("/api/stores/{storeId}/products", STORE_ID))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(content().json("""
+                        {
+                          "store":{"id":1,"storeCode":"S-001","storeName":"城南店"},
+                          "items":[{
+                            "productId":10,
+                            "barcode":"9556155017024",
+                            "productName":"130g花王香皂",
+                            "unit":"块",
+                            "warehouseId":5,
+                            "warehouseCode":"W-01",
+                            "warehouseName":"日化仓",
+                            "salePrice":5.0000,
+                            "currentQuantity":-3.000
+                          }],
+                          "page":0,
+                          "size":20,
+                          "totalElements":1,
+                          "totalPages":1
+                        }
+                        """, JsonCompareMode.STRICT));
+    }
+
+    @Test
+    void productDetailGivesNormalUserOnlyPriceQuantityAndWarehouse() throws Exception {
+        authenticate(normalUser());
+
+        mockMvc.perform(get("/api/stores/{storeId}/products/{productId}", STORE_ID, PRODUCT_ID))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(content().json("""
+                        {
+                          "store":{"id":1,"storeCode":"S-001","storeName":"城南店"},
+                          "productId":10,
+                          "barcode":"9556155017024",
+                          "productName":"130g花王香皂",
+                          "unit":"块",
+                          "warehouseId":5,
+                          "warehouseCode":"W-01",
+                          "warehouseName":"日化仓",
+                          "salePrice":5.0000,
+                          "currentQuantity":-3.000
+                        }
+                        """, JsonCompareMode.STRICT));
+    }
+
+    @Test
+    void normalUserCannotFilterBySupplier() throws Exception {
+        authenticate(normalUser());
+
+        mockMvc.perform(get("/api/stores/{storeId}/products", STORE_ID)
+                        .param("supplierId", "7"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.title").value("请求参数错误"))
+                .andExpect(jsonPath("$.detail").value("当前账号无权按供应商筛选商品"));
+    }
+
+    @Test
+    void normalUserDateRangeIsDroppedInsteadOfQueryingSalesMetrics() throws Exception {
+        authenticate(normalUser());
+
+        mockMvc.perform(get("/api/stores/{storeId}/products", STORE_ID)
+                        .param("startDate", START_DATE.toString())
+                        .param("endDate", END_DATE.toString()))
+                .andExpect(status().isOk());
+
+        // 日期不参与行过滤，清空只是省掉一次销售聚合；行集与不传日期时一致。
+        assertNull(products.criteria.startDate());
+        assertNull(products.criteria.endDate());
+    }
+
+    @Test
     void nonPositiveStoreIdReturnsBadRequest() throws Exception {
         mockMvc.perform(get("/api/stores/{storeId}/products", 0L))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("请求参数错误"))
                 .andExpect(jsonPath("$.detail").value("门店ID必须大于0"));
+    }
+
+    private static AppUser admin() {
+        return new AppUser(1L, "admin", "hash", "系统管理员", UserRole.ADMIN, null, true);
+    }
+
+    private static AppUser normalUser() {
+        return new AppUser(2L, "clerk", "hash", "门店店员", UserRole.USER, STORE_ID, true);
+    }
+
+    /**
+     * 把登录身份放进 {@link SecurityContextHolder}。
+     *
+     * <p>不能用 {@code SecurityMockMvcRequestPostProcessors.authentication(...)}：那个只是把
+     * 上下文暂存起来等过滤器加载，而 standalone 模式没有过滤器链，参数解析器读到的会是空。
+     */
+    private static void authenticate(AppUser user) {
+        AppUserPrincipal principal = new AppUserPrincipal(user);
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
+                principal, principal.getPassword(), principal.getAuthorities()));
+        SecurityContextHolder.setContext(context);
     }
 
     private StoreRepository storeRepository() {
@@ -347,6 +466,7 @@ class StoreProductControllerTest {
                     WAREHOUSE_ID,
                     "W-01",
                     "日化仓",
+                    new BigDecimal("5.0000"),
                     List.of("天和日化"),
                     new BigDecimal("-3.000"),
                     InventoryStatus.NEGATIVE,

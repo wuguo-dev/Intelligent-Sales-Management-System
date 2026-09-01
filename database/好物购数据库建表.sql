@@ -350,6 +350,43 @@ CREATE TABLE IF NOT EXISTS `inventory_movement` (
 ) ENGINE = InnoDB COMMENT = '商品库存变化流水';
 
 -- -----------------------------------------------------------------------------
+-- 12. 系统登录账号
+--     账号由开发人员直接写库，不提供注册接口。
+--     chk_app_user_store_scope 把权限口径做成数据库不变量：
+--     管理员不绑门店（store_id IS NULL 代表全部门店），普通用户必须绑门店。
+--     种子账号见 database/migration/2026-09-01-app-user.sql。
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `app_user`
+(
+    `id`            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '账号主键',
+    `username`      VARCHAR(64) COLLATE utf8mb4_bin NOT NULL COMMENT '登录名，区分大小写',
+    `password_hash` VARCHAR(100)    NOT NULL COMMENT 'BCrypt 哈希；留长以便未来换算法',
+    `display_name`  VARCHAR(64)     NOT NULL COMMENT '展示名',
+    `role_id`       TINYINT UNSIGNED NOT NULL COMMENT '1=ADMIN 管理员，2=USER 普通用户',
+    `store_id`      BIGINT UNSIGNED NULL COMMENT '普通用户绑定门店；管理员为 NULL 代表全部门店',
+    `is_active`     TINYINT(1)      NOT NULL DEFAULT 1 COMMENT '是否启用',
+    `last_login_at` DATETIME(3)     NULL COMMENT '最近登录时间',
+    `created_at`    DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    `updated_at`    DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+        ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_app_user_username` (`username`),
+    KEY `idx_app_user_store` (`store_id`),
+    CONSTRAINT `fk_app_user_store`
+        FOREIGN KEY (`store_id`) REFERENCES `store` (`id`)
+            ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `chk_app_user_role`
+        CHECK (`role_id` IN (1, 2)),
+    CONSTRAINT `chk_app_user_active`
+        CHECK (`is_active` IN (0, 1)),
+    CONSTRAINT `chk_app_user_store_scope`
+        CHECK (
+            (`role_id` = 1 AND `store_id` IS NULL)
+                OR (`role_id` = 2 AND `store_id` IS NOT NULL)
+            )
+) ENGINE = InnoDB COMMENT = '系统登录账号';
+
+-- -----------------------------------------------------------------------------
 -- 查询视图：只暴露当前有效销售批次
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW `v_posted_daily_product_sales` AS

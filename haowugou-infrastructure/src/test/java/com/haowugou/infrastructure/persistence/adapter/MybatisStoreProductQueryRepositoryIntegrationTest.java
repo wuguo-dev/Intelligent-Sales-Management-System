@@ -100,6 +100,9 @@ class MybatisStoreProductQueryRepositoryIntegrationTest {
         StoreProductListItem productInStoreTwo = item(storeTwo, ids.sharedProduct());
         assertEquals(new BigDecimal("5.000"), productInStoreOne.currentQuantity());
         assertEquals(ids.storeOneWarehouse(), productInStoreOne.warehouseId());
+        // 售价是全局商品资料，两家门店读到同一个值；库存与仓库才是门店级的。
+        assertEquals(new BigDecimal("5.0000"), productInStoreOne.salePrice());
+        assertEquals(new BigDecimal("5.0000"), productInStoreTwo.salePrice());
         assertEquals(List.of("甲供应商-" + ids.suffix(), "乙供应商-" + ids.suffix()),
                 productInStoreOne.supplierNames());
         assertEquals(new BigDecimal("5.000"), productInStoreOne.periodSalesMetrics().salesQuantity());

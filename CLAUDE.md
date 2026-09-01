@@ -5,7 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 项目概览
 
 好物购：百货商场多门店智能经营分析系统的 Spring Boot 后端。Maven 多模块，Java 21，MySQL 8。
-核心业务规则：**所有商品/库存/仓库/销售查询必须按 `storeId` 隔离**；销售指标只统计 `POSTED` 批次。
+核心业务规则：**所有商品/库存/仓库/销售查询必须按 `storeId` 隔离**；销售指标只统计 `POSTED` 批次；
+**`/api/**` 除登录与取 CSRF token 外全部需登录**，管理员可用全部功能，
+普通用户只能看商品售价/数量/所处仓库（见「用户与权限切片」）。
 
 ## 常用命令
 
@@ -35,7 +37,7 @@ HAOWUGOU_DB_PASSWORD=<密码> mvn -pl haowugou-bootstrap -am test
 - **domain**：领域模型 + Repository 接口（如 `StoreRepository`、`StoreProductQueryRepository`），不依赖任何框架。
 - **application**：应用用例（`OperatingDataQuery`、`StoreProductQuery`），集中做参数校验、门店校验与编排，只依赖 domain 接口，不依赖 MyBatis/Spring。每个功能包下的应用异常统一收进 `<功能包>/exception/` 子包（如 `application.product.exception.StoreProductNotFoundException`），包根目录只留用例与结果模型。
 - **infrastructure**：`persistence/adapter/` 下 `@Repository` 实现 domain 接口；`persistence/mapper/` 下 `@Mapper` 接口 + `resources/mapper/*.xml` 原生 MyBatis 查询（新链路）；旧链路用 MyBatis Plus（`InventorySnapshotMapper` 等基于注解/Wrapper）。数据库知识只存在于本模块。
-- **bootstrap**：唯一组装点。`config/` 下每个功能模块一个显式 `@Configuration(proxyBeanMethods = false)` + `@Bean` 手工装配应用用例（不做组件扫描式自动注入）；`controller/` 只做 HTTP 参数绑定与响应模型转换，`ApiExceptionHandler` 统一把应用异常映射为 Problem Detail（404 门店/商品不存在，400 参数错误与跨门店仓库）。
+- **bootstrap**：唯一组装点。`config/` 下每个功能模块一个显式 `@Configuration(proxyBeanMethods = false)` + `@Bean` 手工装配应用用例（不做组件扫描式自动注入）；`controller/` 只做 HTTP 参数绑定与响应模型转换，`ApiExceptionHandler` 统一把应用异常映射为 Problem Detail（404 门店/商品不存在，400 参数错误与跨门店仓库）。`security/` 下是 Spring Security 的适配件（`AppUserPrincipal`、`AppUserDetailsService`、门店范围判定与两个 Problem Detail 处理器）——Spring Security 只在本模块出现，domain 的 `UserRole`/`AppUser` 不认识框架。
 - **agent**：空壳模块（仅 pom），Agent 对话能力未开发。
 
 **改动准则**：业务规则放 application；新增查询必须把 `storeId` 下传到底；分页列表避免 N+1（参考 `StoreProductQueryMapper.xml` 固定四次查询模式：总数 + 当前页 + 供应商批量 + 销售批量）；新增应用异常一律放进对应功能包的 `exception/` 子包，别落在包根。
@@ -61,9 +63,40 @@ SHA-256 内容查重，EasyExcel 按表头名而非列序定位，整行文本�
 `import_raw_row` 的外键只有 `batch_id` 没有 `store_id`，查问题行必须 `JOIN import_batch` 带上
 `store_id`，否则传别家 batchId 能读到对方数据。
 
+**用户与权限切片**：Spring Security + 会话 Cookie，无注册接口（账号由开发人员写库，见
+`database/migration/2026-09-01-app-user.sql`）。`role_id` 1=ADMIN、2=USER，口径做成数据库不变量
+（`chk_app_user_store_scope`：管理员必须不绑门店、普通用户必须绑一个门店），填错立刻报错而不是
+运行期出现一个能看全部门店的「普通用户」。权限判定只用 `UserRole` 上的谓词
+（`canManage()`、`canViewCostAndProfit()`、`AppUser.canAccessStore()`），控制器里不写 `roleId == 1`。
+
+权限有**三层，各管一件事，缺一层就有洞**：
+
+1. **URL 层**（`SecurityConfiguration`）：导入、撤销、批次查询限 `hasRole(ADMIN)`；`anyRequest().denyAll()`
+   默认拒绝，新接口漏配规则是访问不了而不是对所有人开放。
+2. **门店层**（`StoreScopeAuthorizationManager`）：读 URI 模板变量 `{storeId}` 与登录者绑定的门店比对。
+   只保护路径里带 `{storeId}` 的接口——`/api/sales/daily?storeId=` 这类把 storeId 放查询参数的旧链路
+   拿不到模板变量，所以整段限制为管理员专用。这一层只缩小范围，**不替代** SQL 里的 `storeId` 条件。
+3. **字段层**（`controller/product/Restricted*Response`）：普通用户走**另一套响应记录**，只有
+   售价/数量/仓库九个字段，不是把管理员的模型置空——置空要靠每个字段的赋值点自觉，漏一个就直接泄露；
+   少声明的字段连序列化的机会都没有。控制器返回 `ResponseEntity<?>`，按 `canViewCostAndProfit()` 二选一。
+
+**筛选参数与输出参数不对称**，这决定了参数怎么处理：`supplierId` 会**过滤行**，静默忽略会让调用方拿到
+比它请求的更多的行，照常执行又等于把「该商品属于哪家供应商」变成可探测的推断通道，所以普通用户传它
+明确按 400 拒绝（复用 `InvalidStoreProductQueryException`）。`startDate`/`endDate` 只喂指标子查询、
+不参与行过滤，普通用户的投影里又没有期间指标，所以直接置 null 丢掉——行集不变，还少跑一次销售聚合。
+
+种子密码哈希是脚本里的字面量，粘错就是谁都登不进去。这个风险由 `AppUserSeedPasswordTest` 兜：
+它直接读迁移脚本源文件、用 BCrypt 对一遍注释里的明文，不连数据库，每次 `mvn test` 都跑。
+`AppUserSeedIntegrationTest` 验的是库里的行（迁移执行过、能按真实 Mapper 读出来），
+但 `store1user` 的 INSERT 条件依赖「库里存在启用门店」，空库上一行都不插、整组跳过——
+所以哈希正确性不能只靠它，两者是源头与落库两个层面，不是重复。
+
 ## 领域与数据库契约
 
-- 数据模型 11 表 2 视图，定义于 `database/好物购数据库建表.sql`（非 git 仓库文档中引用的名字）。
+- 数据模型 12 表 2 视图，定义于 `database/好物购数据库建表.sql`（非 git 仓库文档中引用的名字）。
+  第 12 张是登录账号表 `app_user`（表名不叫 `user`：那是 MySQL 系统表名 `mysql.user`，同名表在很多
+  客户端与运维脚本里得反引号）；建表脚本与 `database/migration/2026-09-01-app-user.sql` 两侧都有，
+  新库执行建表脚本即可，老库跑迁移。
 - `store_product_inventory` 主键 `(store_id, product_id)`，仓库外键 `(warehouse_id, store_id)`——数据库层阻止库存关系引用其他门店仓库。
 - 商品资料（product）是全局共享的；库存数量、仓库位置是门店级的。
 - 视图 `v_product_inventory_query` 含 `store_id`；`v_posted_daily_product_sales` 已按 `batch_id + store_id` 关联有效批次并在库层排除非 `POSTED` 批次——销售区间聚合直接查该视图即可。
@@ -98,5 +131,13 @@ SHA-256 内容查重，EasyExcel 按表头名而非列序定位，整行文本�
   `HAOWUGOU_POS_SALES_FILE` 取路径，未设置或文件不存在时跳过。
 - 单跑一个测试类要加 `-Dsurefire.failIfNoSpecifiedTests=false`（上游模块没有该类会报
   No tests matching pattern，`-DfailIfNoTests=false` 无效）。
-- 现有规模：应用层 54 + 基础设施 22（含 6 个真实 MySQL 集成）+ 启动模块 75（含 19 个真实 MySQL
-  全链路集成与 1 个真实 POS 文件端到端）= 151 个测试。
+- 安全规则用 `SecurityRulesTest` 锁：带完整过滤器链的 `MockMvc`，逐条断言「谁能访问哪个 URL」。
+  这类回归靠人读配置读不出来，加接口时照着补一条。
+- `@AuthenticationPrincipal` 在 standalone MockMvc 下要手工注册 `AuthenticationPrincipalArgumentResolver`
+  （`.setCustomArgumentResolvers(...)`）；`SecurityMockMvcRequestPostProcessors.authentication(...)`
+  在 standalone 模式下**无效**（它只是给过滤器链存一份上下文，而 standalone 没有过滤器链）。
+  控制器测试的做法是 `@BeforeEach` 里把 `SecurityContextHolder` 设成管理员、`@AfterEach` 清掉，
+  只有普通用户的用例才显式改身份——这样既有用例不用动，角色也只出现在它是主角的测试里。
+- 现有规模：领域层 5 + 应用层 66 + 基础设施 32（含 16 个真实 MySQL 集成）+ 启动模块 118（含 24 个
+  真实 MySQL 集成与 1 个真实 POS 文件端到端）= 221 个测试。跑全量时 4 个跳过属正常：
+  3 个等 `store1user` 种子账号（库里没有启用门店时它不会被种下），1 个等 `HAOWUGOU_POS_SALES_FILE`。

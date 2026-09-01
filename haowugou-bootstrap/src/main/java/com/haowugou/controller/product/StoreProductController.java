@@ -1,13 +1,19 @@
 package com.haowugou.controller.product;
 
+import com.haowugou.application.product.StoreProductDetailResult;
+import com.haowugou.application.product.StoreProductPageResult;
 import com.haowugou.application.product.StoreProductQuery;
+import com.haowugou.application.product.exception.InvalidStoreProductQueryException;
 import com.haowugou.domain.product.InventoryStatus;
 import com.haowugou.domain.product.ProductDataStatus;
 import com.haowugou.domain.product.StoreProductQueryCriteria;
+import com.haowugou.security.AppUserPrincipal;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,9 +41,15 @@ public class StoreProductController {
      *
      * <p>支持条码/名称关键字、品类、供应商、仓库、库存状态、库存范围和商品资料状态筛选；
      * 日期范围用于统计该门店有效销售批次的期间销量、销售额和毛利额。
+     *
+     * <p>响应模型按角色二选一：管理员拿 {@link StoreProductPageResponse}，普通用户拿
+     * 字段更少的 {@link RestrictedStoreProductPageResponse}。判定走
+     * {@link com.haowugou.domain.user.UserRole#canViewCostAndProfit()}——该谓词在这里
+     * 决定的是整个投影，不只是成本价与毛利两个字段。
      */
     @GetMapping("/products")
-    public StoreProductPageResponse listProducts(
+    public ResponseEntity<?> listProducts(
+            @AuthenticationPrincipal AppUserPrincipal principal,
             @PathVariable long storeId,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long categoryId,
@@ -51,6 +63,13 @@ public class StoreProductController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
+        boolean full = principal.role().canViewCostAndProfit();
+        if (!full && supplierId != null) {
+            // 供应商筛选是行级过滤，静默忽略会让调用方拿到比它请求的更多的行；
+            // 而照常执行又等于把「该商品属于哪家供应商」这个普通用户看不到的字段
+            // 变成可探测的推断通道，所以只能明确拒绝（与跨门店仓库同为 400）。
+            throw new InvalidStoreProductQueryException("当前账号无权按供应商筛选商品");
+        }
         StoreProductQueryCriteria criteria = new StoreProductQueryCriteria(
                 storeId,
                 keyword,
@@ -61,22 +80,39 @@ public class StoreProductController {
                 dataStatus,
                 minStock,
                 maxStock,
-                startDate,
-                endDate,
+                // 普通用户的投影里没有期间指标，日期传下去只会多跑一次销售聚合查询。
+                // 日期不参与行过滤（只喂指标子查询），所以清空不会改变返回的行集。
+                full ? startDate : null,
+                full ? endDate : null,
                 page,
                 size);
-        return StoreProductPageResponse.from(storeProductQuery.listProducts(criteria));
+        StoreProductPageResult result = storeProductQuery.listProducts(criteria);
+        if (full) {
+            return ResponseEntity.ok(StoreProductPageResponse.from(result));
+        }
+        return ResponseEntity.ok(RestrictedStoreProductPageResponse.from(result));
     }
 
-    /** 返回指定门店内单个商品的详情；商品未在该门店建立库存关系时返回 HTTP 404。 */
+    /**
+     * 返回指定门店内单个商品的详情；商品未在该门店建立库存关系时返回 HTTP 404。
+     *
+     * <p>与列表一致，普通用户拿到的是只含售价、库存数量与所处仓库的
+     * {@link RestrictedStoreProductDetailResponse}。
+     */
     @GetMapping("/products/{productId}")
-    public StoreProductDetailResponse findProduct(
+    public ResponseEntity<?> findProduct(
+            @AuthenticationPrincipal AppUserPrincipal principal,
             @PathVariable long storeId,
             @PathVariable long productId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return StoreProductDetailResponse.from(
-                storeProductQuery.findProduct(storeId, productId, startDate, endDate));
+        boolean full = principal.role().canViewCostAndProfit();
+        StoreProductDetailResult result = storeProductQuery.findProduct(
+                storeId, productId, full ? startDate : null, full ? endDate : null);
+        if (full) {
+            return ResponseEntity.ok(StoreProductDetailResponse.from(result));
+        }
+        return ResponseEntity.ok(RestrictedStoreProductDetailResponse.from(result));
     }
 
     /** 返回指定门店的已启用仓库；门店不存在时返回 HTTP 404。 */

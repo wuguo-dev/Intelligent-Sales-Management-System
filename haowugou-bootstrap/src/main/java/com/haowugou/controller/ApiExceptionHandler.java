@@ -15,6 +15,9 @@ import com.haowugou.application.product.exception.WarehouseNotInStoreException;
 import com.haowugou.application.salesimport.exception.DuplicateSalesFileException;
 import com.haowugou.application.salesimport.exception.InvalidSalesImportException;
 import com.haowugou.application.salesimport.exception.PostedSalesBatchExistsException;
+import com.haowugou.application.user.exception.InvalidUserQueryException;
+import com.haowugou.application.user.exception.UserAccountNotFoundException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -113,6 +116,34 @@ public class ApiExceptionHandler {
     @ExceptionHandler(BatchNotReversibleException.class)
     ProblemDetail handleBatchNotReversible(BatchNotReversibleException exception) {
         return conflict(exception.getMessage(), "批次不可撤销");
+    }
+
+    /**
+     * 登录失败。
+     *
+     * <p>统一回同一句话，不区分账号不存在与密码错误：分开说等于给出账号枚举接口。
+     * 也不回 {@code exception.getMessage()}，那里可能带上账号是否存在的线索。
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    ProblemDetail handleAuthenticationFailure(AuthenticationException exception) {
+        ProblemDetail detail =
+                ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "账号或密码错误");
+        detail.setTitle("登录失败");
+        return detail;
+    }
+
+    /** 账号在登录之后被停用或删除，前端应引导重新登录。 */
+    @ExceptionHandler(UserAccountNotFoundException.class)
+    ProblemDetail handleUserAccountNotFound(UserAccountNotFoundException exception) {
+        ProblemDetail detail =
+                ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+        detail.setTitle("账号不存在或已停用");
+        return detail;
+    }
+
+    @ExceptionHandler(InvalidUserQueryException.class)
+    ProblemDetail handleInvalidUserQuery(InvalidUserQueryException exception) {
+        return badRequest(exception.getMessage());
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
