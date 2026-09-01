@@ -1,4 +1,4 @@
-package com.haowugou.infrastructure.persistence.data;
+package com.haowugou.infrastructure.persistence.product;
 
 import java.math.BigDecimal;
 import lombok.Getter;

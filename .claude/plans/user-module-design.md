@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS `app_user` (
 
 **落地方式**：
 - 新增 `database/migration/2026-09-01-app-user.sql`（建表 + 种子账号，不幂等，与现有迁移一致）
-- 同步写入 `database/好物购数据库建表.sql`，让全新库初始化也带这张表
+- 同步写入 `database/schema.sql`，让全新库初始化也带这张表
 
 **种子账号**：`admin` / `store1user`，密码明文写在迁移脚本注释里。BCrypt 哈希不能凭空手写，
 实现时用一次性 `main` 生成真实哈希再粘进 SQL，并在集成测试里断言

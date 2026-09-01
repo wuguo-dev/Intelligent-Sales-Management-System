@@ -1,6 +1,6 @@
-package com.haowugou.infrastructure.persistence.mapper;
+package com.haowugou.infrastructure.persistence.warehouse;
 
-import com.haowugou.infrastructure.persistence.data.WarehouseRow;
+import com.haowugou.infrastructure.persistence.warehouse.WarehouseRow;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;

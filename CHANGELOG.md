@@ -2,6 +2,19 @@
 
 本文件记录项目开发阶段的重要功能、设计调整与验证结果。
 
+## 2026-09-01 重构
+
+### 基础设施层重组（persistence 包）
+- 由「技术角色优先」改为「功能优先」，与 domain/、application/、controller/ 的分包方式对齐
+- 原 `adapter/`、`mapper/`、`data/` 三层按功能重组为 `store/`、`product/`、`warehouse/`、`inventory/`、`sales/`
+- 保留 `importbatch/`、`salesimport/`、`user/` 三个完整功能包不变（内部已是 Mapper + Row + Repository 混合）
+- 影响 17 个 Java 文件 + 6 个 Mapper XML + 1 个集成测试，全量测试 221/221 通过（4 个跳过符合预期）
+
+### 文档与资源整理
+- `docs/superpowers/specs/` 重命名为 `docs/design/`（设计文档）
+- `progress.md`、`task_plan.md`、`findings.md` 归档至 `docs/archive/`（开发过程产物）
+- `database/好物购数据库建表.sql` 重命名为 `database/schema.sql`（避免中文文件名跨平台问题）
+
 ## [Unreleased]
 
 ### 新增

@@ -1,4 +1,4 @@
-package com.haowugou.infrastructure.persistence.data;
+package com.haowugou.infrastructure.persistence.inventory;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

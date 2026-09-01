@@ -1,10 +1,10 @@
-package com.haowugou.infrastructure.persistence.adapter;
+package com.haowugou.infrastructure.persistence.sales;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.haowugou.domain.sales.StoreDailySales;
 import com.haowugou.domain.sales.StoreDailySalesRepository;
-import com.haowugou.infrastructure.persistence.data.StoreDailySalesDataObject;
-import com.haowugou.infrastructure.persistence.mapper.StoreDailySalesMapper;
+import com.haowugou.infrastructure.persistence.sales.StoreDailySalesDataObject;
+import com.haowugou.infrastructure.persistence.sales.StoreDailySalesMapper;
 import java.time.LocalDate;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;

@@ -1,6 +1,6 @@
-package com.haowugou.infrastructure.persistence.mapper;
+package com.haowugou.infrastructure.persistence.inventory;
 
-import com.haowugou.infrastructure.persistence.data.InventoryItemRow;
+import com.haowugou.infrastructure.persistence.inventory.InventoryItemRow;
 import java.time.LocalDate;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;

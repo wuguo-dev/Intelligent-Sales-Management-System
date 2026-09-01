@@ -1,4 +1,4 @@
-package com.haowugou.infrastructure.persistence.data;
+package com.haowugou.infrastructure.persistence.store;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;

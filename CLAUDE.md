@@ -36,7 +36,12 @@ HAOWUGOU_DB_PASSWORD=<密码> mvn -pl haowugou-bootstrap -am test
 
 - **domain**：领域模型 + Repository 接口（如 `StoreRepository`、`StoreProductQueryRepository`），不依赖任何框架。
 - **application**：应用用例（`OperatingDataQuery`、`StoreProductQuery`），集中做参数校验、门店校验与编排，只依赖 domain 接口，不依赖 MyBatis/Spring。每个功能包下的应用异常统一收进 `<功能包>/exception/` 子包（如 `application.product.exception.StoreProductNotFoundException`），包根目录只留用例与结果模型。
-- **infrastructure**：`persistence/adapter/` 下 `@Repository` 实现 domain 接口；`persistence/mapper/` 下 `@Mapper` 接口 + `resources/mapper/*.xml` 原生 MyBatis 查询（新链路）；旧链路用 MyBatis Plus（`InventorySnapshotMapper` 等基于注解/Wrapper）。数据库知识只存在于本模块。
+- **infrastructure**：`persistence/<功能>/` 按功能分包，与 domain 的分包 1:1 对应（`store`、`product`、
+  `warehouse`、`inventory`、`sales`、`importbatch`、`salesimport`、`user`）。每个包里放齐这一功能的三件套：
+  `@Repository` 实现（domain 接口的适配器）+ `@Mapper` 接口 + 行模型（`*Row` / `*DataObject`），
+  SQL 在 `resources/mapper/*.xml`。**不按技术角色分包**——早先的 `adapter/`、`mapper/`、`data/` 已拆掉：
+  同一功能的三件套总是一起改，分开放只会让每次改动横跨三个目录，而按技术分又切不干净
+  （`StoreMapper` 同时用 MyBatis Plus 的 `@TableName` 和原生 ibatis 注解）。数据库知识只存在于本模块。
 - **bootstrap**：唯一组装点。`config/` 下每个功能模块一个显式 `@Configuration(proxyBeanMethods = false)` + `@Bean` 手工装配应用用例（不做组件扫描式自动注入）；`controller/` 只做 HTTP 参数绑定与响应模型转换，`ApiExceptionHandler` 统一把应用异常映射为 Problem Detail（404 门店/商品不存在，400 参数错误与跨门店仓库）。`security/` 下是 Spring Security 的适配件（`AppUserPrincipal`、`AppUserDetailsService`、门店范围判定与两个 Problem Detail 处理器）——Spring Security 只在本模块出现，domain 的 `UserRole`/`AppUser` 不认识框架。
 - **agent**：空壳模块（仅 pom），Agent 对话能力未开发。
 
@@ -93,7 +98,7 @@ SHA-256 内容查重，EasyExcel 按表头名而非列序定位，整行文本�
 
 ## 领域与数据库契约
 
-- 数据模型 12 表 2 视图，定义于 `database/好物购数据库建表.sql`（非 git 仓库文档中引用的名字）。
+- 数据模型 12 表 2 视图，定义于 `database/schema.sql`（非 git 仓库文档中引用的名字）。
   第 12 张是登录账号表 `app_user`（表名不叫 `user`：那是 MySQL 系统表名 `mysql.user`，同名表在很多
   客户端与运维脚本里得反引号）；建表脚本与 `database/migration/2026-09-01-app-user.sql` 两侧都有，
   新库执行建表脚本即可，老库跑迁移。

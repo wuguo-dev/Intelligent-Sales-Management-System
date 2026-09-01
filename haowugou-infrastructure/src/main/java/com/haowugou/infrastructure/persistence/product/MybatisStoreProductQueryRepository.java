@@ -1,4 +1,4 @@
-package com.haowugou.infrastructure.persistence.adapter;
+package com.haowugou.infrastructure.persistence.product;
 
 import com.haowugou.domain.pagination.PageResult;
 import com.haowugou.domain.product.PeriodSalesMetrics;
@@ -6,10 +6,10 @@ import com.haowugou.domain.product.StoreProductDetail;
 import com.haowugou.domain.product.StoreProductListItem;
 import com.haowugou.domain.product.StoreProductQueryCriteria;
 import com.haowugou.domain.product.StoreProductQueryRepository;
-import com.haowugou.infrastructure.persistence.data.ProductSalesMetricsRow;
-import com.haowugou.infrastructure.persistence.data.ProductSupplierRow;
-import com.haowugou.infrastructure.persistence.data.StoreProductRow;
-import com.haowugou.infrastructure.persistence.mapper.StoreProductQueryMapper;
+import com.haowugou.infrastructure.persistence.product.ProductSalesMetricsRow;
+import com.haowugou.infrastructure.persistence.product.ProductSupplierRow;
+import com.haowugou.infrastructure.persistence.product.StoreProductRow;
+import com.haowugou.infrastructure.persistence.product.StoreProductQueryMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;

@@ -1,4 +1,4 @@
-package com.haowugou.infrastructure.persistence.data;
+package com.haowugou.infrastructure.persistence.product;
 
 import com.haowugou.domain.product.InventoryStatus;
 import com.haowugou.domain.product.ProductDataStatus;

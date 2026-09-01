@@ -1,9 +1,9 @@
-package com.haowugou.infrastructure.persistence.mapper;
+package com.haowugou.infrastructure.persistence.product;
 
 import com.haowugou.domain.product.StoreProductQueryCriteria;
-import com.haowugou.infrastructure.persistence.data.ProductSalesMetricsRow;
-import com.haowugou.infrastructure.persistence.data.ProductSupplierRow;
-import com.haowugou.infrastructure.persistence.data.StoreProductRow;
+import com.haowugou.infrastructure.persistence.product.ProductSalesMetricsRow;
+import com.haowugou.infrastructure.persistence.product.ProductSupplierRow;
+import com.haowugou.infrastructure.persistence.product.StoreProductRow;
 import java.time.LocalDate;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;

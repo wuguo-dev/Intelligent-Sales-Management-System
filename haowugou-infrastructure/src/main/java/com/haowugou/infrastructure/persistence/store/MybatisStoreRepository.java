@@ -1,10 +1,10 @@
-package com.haowugou.infrastructure.persistence.adapter;
+package com.haowugou.infrastructure.persistence.store;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.haowugou.domain.store.Store;
 import com.haowugou.domain.store.StoreRepository;
-import com.haowugou.infrastructure.persistence.data.StoreDataObject;
-import com.haowugou.infrastructure.persistence.mapper.StoreMapper;
+import com.haowugou.infrastructure.persistence.store.StoreDataObject;
+import com.haowugou.infrastructure.persistence.store.StoreMapper;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;

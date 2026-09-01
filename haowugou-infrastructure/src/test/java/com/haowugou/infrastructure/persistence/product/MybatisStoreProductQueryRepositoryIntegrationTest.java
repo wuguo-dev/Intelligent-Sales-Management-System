@@ -1,4 +1,4 @@
-package com.haowugou.infrastructure.persistence.adapter;
+package com.haowugou.infrastructure.persistence.product;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -10,8 +10,8 @@ import com.haowugou.domain.product.ProductDataStatus;
 import com.haowugou.domain.product.StoreProductDetail;
 import com.haowugou.domain.product.StoreProductListItem;
 import com.haowugou.domain.product.StoreProductQueryCriteria;
-import com.haowugou.infrastructure.persistence.mapper.StoreProductQueryMapper;
-import com.haowugou.infrastructure.persistence.mapper.WarehouseQueryMapper;
+import com.haowugou.infrastructure.persistence.warehouse.MybatisWarehouseRepository;
+import com.haowugou.infrastructure.persistence.warehouse.WarehouseQueryMapper;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.sql.Connection;

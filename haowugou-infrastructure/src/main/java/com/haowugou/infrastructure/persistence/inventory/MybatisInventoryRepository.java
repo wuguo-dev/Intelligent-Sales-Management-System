@@ -1,9 +1,9 @@
-package com.haowugou.infrastructure.persistence.adapter;
+package com.haowugou.infrastructure.persistence.inventory;
 
 import com.haowugou.domain.inventory.InventoryItem;
 import com.haowugou.domain.inventory.InventoryRepository;
-import com.haowugou.infrastructure.persistence.data.InventoryItemRow;
-import com.haowugou.infrastructure.persistence.mapper.InventorySnapshotMapper;
+import com.haowugou.infrastructure.persistence.inventory.InventoryItemRow;
+import com.haowugou.infrastructure.persistence.inventory.InventorySnapshotMapper;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Repository;

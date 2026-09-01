@@ -1,4 +1,4 @@
-package com.haowugou.infrastructure.persistence.data;
+package com.haowugou.infrastructure.persistence.warehouse;
 
 import lombok.Getter;
 import lombok.Setter;

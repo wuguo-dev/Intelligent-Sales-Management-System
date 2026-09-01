@@ -1,9 +1,9 @@
-package com.haowugou.infrastructure.persistence.adapter;
+package com.haowugou.infrastructure.persistence.warehouse;
 
 import com.haowugou.domain.warehouse.WarehouseRepository;
 import com.haowugou.domain.warehouse.WarehouseSummary;
-import com.haowugou.infrastructure.persistence.data.WarehouseRow;
-import com.haowugou.infrastructure.persistence.mapper.WarehouseQueryMapper;
+import com.haowugou.infrastructure.persistence.warehouse.WarehouseRow;
+import com.haowugou.infrastructure.persistence.warehouse.WarehouseQueryMapper;
 import java.util.List;
 import org.springframework.stereotype.Repository;
 
