@@ -17,6 +17,7 @@ vi.mock('../../api/http', async (importOriginal) => {
 });
 
 import * as importsApi from '../../api/imports';
+import type { ImportResult } from '../../api/imports';
 import { getProblemDetailMessage } from '../../api/http';
 
 const admin: UserProfile = {
@@ -30,7 +31,7 @@ const admin: UserProfile = {
   canViewCostAndProfit: true,
 };
 
-const postedResult = {
+const postedResult: ImportResult = {
   batchId: 9,
   status: 'POSTED',
   totalRows: 3,
@@ -38,7 +39,7 @@ const postedResult = {
   errorRows: 0,
   errors: [],
 };
-const failedResult = {
+const failedResult: ImportResult = {
   batchId: 10,
   status: 'FAILED',
   totalRows: 3,
