@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 280" width="420" height="280">
+  <!-- 占位插画：门店场景。后续替换为实际商城宣传图（保持同文件名即可） -->
+  <defs>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4A6FD8"/>
+      <stop offset="1" stop-color="#7FB5E8"/>
+    </linearGradient>
+    <linearGradient id="awningGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFB84D"/>
+      <stop offset="1" stop-color="#FF8A5C"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景 -->
+  <rect x="0" y="0" width="420" height="280" rx="16" fill="url(#skyGrad)"/>
+
+  <!-- 门店主体 -->
+  <rect x="80" y="96" width="260" height="150" rx="8" fill="#F6F1E7"/>
+  <!-- 雨棚 -->
+  <path d="M66 96 L354 96 L338 124 L82 124 Z" fill="url(#awningGrad)"/>
+  <path d="M112 96 L102 124 M168 96 L158 124 M224 96 L214 124 M280 96 L270 124 M336 96 L326 124"
+        stroke="#E8703A" stroke-width="3" stroke-linecap="round"/>
+  <!-- 玻璃门 -->
+  <rect x="175" y="140" width="70" height="106" rx="4" fill="#CBE4F5"/>
+  <rect x="175" y="140" width="70" height="106" rx="4" fill="none" stroke="#D8CFC0" stroke-width="4"/>
+  <line x1="210" y1="140" x2="210" y2="246" stroke="#D8CFC0" stroke-width="4"/>
+  <rect x="182" y="170" width="12" height="12" rx="2" fill="#F3C94F"/>
+  <rect x="228" y="170" width="12" height="12" rx="2" fill="#F3C94F"/>
+  <!-- 橱窗 -->
+  <rect x="92" y="148" width="70" height="88" rx="4" fill="#EAF4FB"/>
+  <rect x="258" y="148" width="70" height="88" rx="4" fill="#EAF4FB"/>
+  <!-- 橱窗内商品圆点 -->
+  <circle cx="112" cy="176" r="7" fill="#FFB84D"/>
+  <circle cx="132" cy="176" r="7" fill="#FF6B6B"/>
+  <circle cx="122" cy="200" r="7" fill="#4ECDC4"/>
+  <circle cx="278" cy="176" r="7" fill="#FF6B6B"/>
+  <circle cx="298" cy="176" r="7" fill="#4ECDC4"/>
+  <circle cx="288" cy="200" r="7" fill="#FFB84D"/>
+
+  <!-- 购物袋 1 -->
+  <g transform="translate(52 196)">
+    <path d="M8 8h52l-4 44a6 6 0 0 1-6 5.6H18a6 6 0 0 1-6-5.6L8 8z" fill="#FF6B6B"/>
+    <path d="M16 8C16-2 22-6 34-6s18 4 18 14" fill="none" stroke="#E04E5A" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <!-- 购物袋 2 -->
+  <g transform="translate(318 210)">
+    <path d="M8 8h44l-3.4 36a5 5 0 0 1-5 4.6H16.4a5 5 0 0 1-5-4.6L8 8z" fill="#4ECDC4"/>
+    <path d="M15 8C15 0 20-4 30-4s15 3 15 12" fill="none" stroke="#2FA8A0" stroke-width="3.4" stroke-linecap="round"/>
+  </g>
+
+  <!-- 漂浮价签 -->
+  <g transform="translate(356 84) rotate(8)">
+    <rect x="0" y="0" width="46" height="30" rx="6" fill="#fff"/>
+    <circle cx="12" cy="15" r="4" fill="#FF6B6B"/>
+    <line x1="22" y1="15" x2="40" y2="15" stroke="#D8D8D8" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(40 110) rotate(-6)">
+    <rect x="0" y="0" width="52" height="34" rx="7" fill="#fff"/>
+    <circle cx="14" cy="17" r="5" fill="#4ECDC4"/>
+    <line x1="25" y1="17" x2="46" y2="17" stroke="#D8D8D8" stroke-width="4.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- 底部装饰圆 -->
+  <circle cx="380" cy="250" r="60" fill="#ffffff" opacity="0.08"/>
+  <circle cx="30" cy="30" r="40" fill="#ffffff" opacity="0.08"/>
+</svg>

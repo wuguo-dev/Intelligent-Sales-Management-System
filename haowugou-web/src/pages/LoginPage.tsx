@@ -5,6 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import { ensureCsrfToken } from '../api/auth';
 import { getProblemDetailMessage } from '../api/http';
 import { useAuthStore } from '../stores/auth';
+import loginIllustration from '../assets/login-illustration.svg';
+import logo from '../assets/logo.svg';
+import './login.css';
 
 interface LoginFormValues {
   username: string;
@@ -36,41 +39,48 @@ export default function LoginPage() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#f5f5f5',
-      }}
-    >
-      <Card title="好物购" style={{ width: 360 }}>
-        {error && (
-          <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} />
-        )}
-        <Form<LoginFormValues> onFinish={onFinish} size="large">
-          <Form.Item
-            name="username"
-            rules={[
-              { required: true, message: '请输入用户名' },
-              { max: 64, message: '用户名最长 64 个字符' },
-            ]}
-          >
-            <Input prefix={<UserOutlined />} placeholder="用户名" autoComplete="username" />
-          </Form.Item>
-          <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="密码"
-              autoComplete="current-password"
-            />
-          </Form.Item>
-          <Button type="primary" htmlType="submit" block loading={submitting}>
-            登 录
-          </Button>
-        </Form>
-      </Card>
+    <div className="login-page">
+      <div className="login-brand">
+        <div className="login-brand-head">
+          <img src={logo} alt="好物购" width={44} height={44} />
+          <span className="login-brand-name">好物购</span>
+        </div>
+        <div className="login-brand-tagline">百货商场 · 多门店智能经营分析系统</div>
+        <div className="login-brand-illustration">
+          <img src={loginIllustration} alt="品牌视觉" />
+        </div>
+      </div>
+
+      <div className="login-form-panel">
+        <Card className="login-card" styles={{ body: { padding: 40 } }}>
+          <div className="login-card-title">欢迎登录</div>
+          <div className="login-card-subtitle">请使用您的账号登录系统</div>
+          {error && (
+            <Alert type="error" title={error} showIcon style={{ marginBottom: 16 }} />
+          )}
+          <Form<LoginFormValues> onFinish={onFinish} size="large">
+            <Form.Item
+              name="username"
+              rules={[
+                { required: true, message: '请输入用户名' },
+                { max: 64, message: '用户名最长 64 个字符' },
+              ]}
+            >
+              <Input prefix={<UserOutlined />} placeholder="用户名" autoComplete="username" />
+            </Form.Item>
+            <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder="密码"
+                autoComplete="current-password"
+              />
+            </Form.Item>
+            <Button type="primary" htmlType="submit" block loading={submitting}>
+              登 录
+            </Button>
+          </Form>
+        </Card>
+      </div>
     </div>
   );
 }
