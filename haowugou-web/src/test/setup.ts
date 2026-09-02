@@ -16,3 +16,16 @@ if (typeof window.matchMedia !== 'function') {
     }),
   });
 }
+
+// antd 下拉等组件依赖 ResizeObserver（jsdom 未实现）
+if (typeof window.ResizeObserver === 'undefined') {
+  class ResizeObserverMock {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  Object.defineProperty(window, 'ResizeObserver', {
+    writable: true,
+    value: ResizeObserverMock,
+  });
+}
