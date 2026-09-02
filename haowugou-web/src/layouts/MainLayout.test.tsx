@@ -3,10 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UserProfile } from '../api/types';
+import { useAppStore } from '../stores/app';
 import { useAuthStore } from '../stores/auth';
 import MainLayout from './MainLayout';
 
 vi.mock('../api/auth', () => ({ logout: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../api/stores', () => ({ listStores: vi.fn().mockResolvedValue([]) }));
 
 import * as authApi from '../api/auth';
 
@@ -19,6 +21,17 @@ const user: UserProfile = {
   store: { id: 1, storeCode: 'S001', storeName: '门店一' },
   canManage: false,
   canViewCostAndProfit: false,
+};
+
+const admin: UserProfile = {
+  userId: 1,
+  username: 'admin',
+  displayName: '管理员',
+  roleId: 1,
+  role: 'ADMIN',
+  store: null,
+  canManage: true,
+  canViewCostAndProfit: true,
 };
 
 function renderLayout() {
@@ -41,6 +54,7 @@ describe('MainLayout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useAuthStore.setState({ profile: user });
+    useAppStore.setState({ stores: [], currentStoreId: null });
   });
 
   it('顶栏展示用户名与门店', () => {
@@ -59,5 +73,17 @@ describe('MainLayout', () => {
     expect(authApi.logout).toHaveBeenCalled();
     expect(useAuthStore.getState().profile).toBeNull();
     expect(await screen.findByText('登录页')).toBeInTheDocument();
+  });
+
+  it('普通用户看不到导入菜单', () => {
+    renderLayout();
+    expect(screen.queryByText('导入管理')).not.toBeInTheDocument();
+  });
+
+  it('管理员看到导入菜单，未选门店时菜单项禁用', () => {
+    useAuthStore.setState({ profile: admin });
+    renderLayout();
+    expect(screen.getByText('导入管理')).toBeInTheDocument();
+    expect(screen.getByText('初始库存导入').closest('li')).toHaveClass('ant-menu-item-disabled');
   });
 });
