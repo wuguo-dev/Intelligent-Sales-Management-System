@@ -19,10 +19,13 @@ const admin: UserProfile = {
   canViewCostAndProfit: true,
 };
 
+// 记录创建时的真实 action：有的用例会 setState 替换 fetchMe（合并式替换会残留）
+const originalFetchMe = useAuthStore.getState().fetchMe;
+
 describe('protectedLoader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useAuthStore.setState({ profile: null });
+    useAuthStore.setState({ profile: null, fetchMe: originalFetchMe });
   });
 
   it('已有资料时不查 me 直接放行', async () => {
