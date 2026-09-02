@@ -16,6 +16,7 @@ vi.mock('../../api/http', async (importOriginal) => {
 });
 
 import * as importsApi from '../../api/imports';
+import type { ImportBatchDetail } from '../../api/imports';
 import { getProblemDetailMessage } from '../../api/http';
 
 const admin: UserProfile = {
@@ -29,7 +30,7 @@ const admin: UserProfile = {
   canViewCostAndProfit: true,
 };
 
-const detail = {
+const detail: ImportBatchDetail = {
   store: { id: 5, storeCode: 'S005', storeName: '门店五' },
   batch: {
     batchId: 42,

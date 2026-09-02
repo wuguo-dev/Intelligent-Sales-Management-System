@@ -13,6 +13,7 @@ vi.mock('../../api/imports', () => ({
 }));
 
 import * as importsApi from '../../api/imports';
+import type { ImportBatchPage } from '../../api/imports';
 
 const admin: UserProfile = {
   userId: 1,
@@ -25,7 +26,7 @@ const admin: UserProfile = {
   canViewCostAndProfit: true,
 };
 
-const pageData = {
+const pageData: ImportBatchPage = {
   store: { id: 5, storeCode: 'S005', storeName: '门店五' },
   items: [
     {
@@ -91,8 +92,12 @@ describe('ImportBatchesPage', () => {
     await screen.findByText('sales.xlsx');
 
     await userEvent.click(screen.getByLabelText('导入类型'));
-    // 下拉选项文本与表格类型 Tag 重复，定位到打开的下拉容器内
-    const dropdown = await screen.findByRole('listbox');
+    // 可见下拉容器（antd v6 的无障碍 listbox 是隐藏镜像，不能用 findByRole 定位）
+    const dropdown = await waitFor(() => {
+      const el = document.querySelector('.ant-select-dropdown:not(.ant-select-dropdown-hidden)');
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
     await userEvent.click(within(dropdown).getByText('每日销售'));
     await userEvent.click(screen.getByRole('button', { name: /查\s*询/ }));
 

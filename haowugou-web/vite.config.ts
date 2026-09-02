@@ -16,5 +16,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     passWithNoTests: true,
+    // 全量并行跑时 antd 组件测试在本机负载下会超过默认 5s，放宽到 15s
+    testTimeout: 15000,
   },
 });
