@@ -1,6 +1,7 @@
 # 前端认证骨架设计
 
-- 状态：已设计（待实现）
+- 状态：已实现 —— 8 个任务完成，29 个前端单测 + 生产构建通过；经 Vite 代理对真实后端完成闭环验证
+  （CSRF 获取 → 错误密码 401 → admin 登录 200 → me 恢复 → 登出 204 并清 Cookie → 重新取令牌再登录）
 - 功能切片：`codex/import-batch-reversal`（前端骨架从当前分支起，技术栈 React，与后端无关）
 - 对应架构规范：好物购项目整体架构规范 v1.0（§10 HTTP 接口规范、§19 Git 与交付规范；规范本身是后端视角，前端为新地面，本切片只遵守其后端契约与交付章节）
 - 技术栈：**React 18 + TypeScript + Vite + Ant Design 5 + React Router + Zustand + axios**（用户指定 React 栈，替换最初议定的 Vue3 + Element Plus；认证契约与框架无关，后端零改动）
