@@ -1,6 +1,12 @@
 # 前端导入切片设计（批次管理 + 上传全链路）
 
-- 状态：已设计（待实现）
+- 状态：已实现 —— 10 个任务完成，69 个前端单测 + 生产构建通过；经真实后端完成 API 级闭环验证
+  （销售导入 899 行 POSTED → 批次列表 → 详情 → 撤销 REVERSED → 同文件同日期重传成功 →
+  初始库存 FAILED 行级错误），前端页面级验证由 69 个 RTL 单测覆盖
+- 已知后端问题（非本切片）：`SecurityConfiguration` 未放行 `/error`，框架级错误
+  （未知路由 404/405/请求体解析失败）的错误分发被 `denyAll()` 拦截，全部掩盖为「403 权限不足」。
+  前端不受影响（axios 请求体合法 UTF-8、业务异常走 ApiExceptionHandler），
+  待单独修：加 `.requestMatchers("/error").permitAll()` 并补 SecurityRulesTest 用例
 - 功能切片：`codex/import-batch-reversal`（沿用当前分支）
 - 前序切片：`docs/design/2026-09-01-frontend-auth-skeleton-design.md`（认证骨架，已实现）
 - 对应后端：`ImportBatchController`、`InitialInventoryImportController`、`DailySalesImportController`（全部管理员专用）
