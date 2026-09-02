@@ -83,7 +83,7 @@ describe('InventoryImportPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /开始导入/ }));
 
     await waitFor(() => expect(importsApi.importInventory).toHaveBeenCalled());
-    const [storeId, file, warehouseId] = importsApi.importInventory.mock.calls[0];
+    const [storeId, file, warehouseId] = vi.mocked(importsApi.importInventory).mock.calls[0];
     expect(storeId).toBe(5);
     expect(file).toBeInstanceOf(File);
     expect(warehouseId).toBeUndefined();
