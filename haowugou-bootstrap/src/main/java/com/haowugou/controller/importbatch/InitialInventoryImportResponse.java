@@ -1,5 +1,7 @@
 package com.haowugou.controller.importbatch;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.haowugou.domain.importbatch.ImportBatchResult;
 import com.haowugou.domain.importbatch.ImportRowError;
 import java.util.List;
@@ -15,7 +17,7 @@ import java.util.List;
  * @param errors 行级错误明细，最多返回 50 条
  */
 public record InitialInventoryImportResponse(
-        long batchId,
+        @JsonSerialize(using = ToStringSerializer.class) long batchId,
         String status,
         int totalRows,
         int successRows,

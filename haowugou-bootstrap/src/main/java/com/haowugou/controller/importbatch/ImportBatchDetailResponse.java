@@ -1,5 +1,7 @@
 package com.haowugou.controller.importbatch;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.haowugou.application.importbatch.ImportBatchDetailResult;
 import com.haowugou.domain.importbatch.ImportBatchDetail;
 import java.time.LocalDate;
@@ -47,7 +49,7 @@ public record ImportBatchDetailResponse(
      * @param reversible 是否可撤销
      */
     public record Batch(
-            long batchId,
+        @JsonSerialize(using = ToStringSerializer.class) long batchId,
             String importType,
             String status,
             LocalDate dataDate,

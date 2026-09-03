@@ -1,5 +1,7 @@
 package com.haowugou.controller.importbatch;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.haowugou.domain.store.Store;
 
 /**
@@ -9,7 +11,10 @@ import com.haowugou.domain.store.Store;
  * @param storeCode 门店编码
  * @param storeName 门店名称
  */
-public record ImportStoreResponse(Long id, String storeCode, String storeName) {
+public record ImportStoreResponse(
+        @JsonSerialize(using = ToStringSerializer.class) Long id,
+        String storeCode,
+        String storeName) {
 
     static ImportStoreResponse from(Store store) {
         return new ImportStoreResponse(store.id(), store.storeCode(), store.storeName());

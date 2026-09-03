@@ -1,5 +1,7 @@
 package com.haowugou.controller.importbatch;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.haowugou.domain.importbatch.ImportBatchListItem;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -21,7 +23,7 @@ import java.time.LocalDateTime;
  * @param reversible 是否可撤销，供前端决定按钮是否可点
  */
 public record ImportBatchItemResponse(
-        long batchId,
+        @JsonSerialize(using = ToStringSerializer.class) long batchId,
         String importType,
         String status,
         LocalDate dataDate,

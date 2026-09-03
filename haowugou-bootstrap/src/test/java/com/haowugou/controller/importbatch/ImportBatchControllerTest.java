@@ -13,6 +13,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.haowugou.application.importbatch.ImportBatchQuery;
 import com.haowugou.application.importbatch.ReverseImportBatch;
 import com.haowugou.controller.ApiExceptionHandler;
+import com.haowugou.domain.PageResult;
 import com.haowugou.domain.importbatch.ImportBatchDetail;
 import com.haowugou.domain.importbatch.ImportBatchListItem;
 import com.haowugou.domain.importbatch.ImportBatchProblemRow;
@@ -23,7 +24,6 @@ import com.haowugou.domain.importbatch.ImportBatchReversalRepository;
 import com.haowugou.domain.importbatch.ImportBatchReversalResult;
 import com.haowugou.domain.importbatch.ImportBatchStatus;
 import com.haowugou.domain.importbatch.ImportType;
-import com.haowugou.domain.pagination.PageResult;
 import com.haowugou.domain.store.Store;
 import com.haowugou.domain.store.StoreRepository;
 import java.time.LocalDate;
@@ -81,9 +81,9 @@ class ImportBatchControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("""
                         {
-                          "store":{"id":1,"storeCode":"S-001","storeName":"城南店"},
+                          "store":{"id":"1","storeCode":"S-001","storeName":"城南店"},
                           "items":[{
-                            "batchId":88,
+                            "batchId":"88",
                             "importType":"DAILY_SALES",
                             "status":"POSTED",
                             "dataDate":"2026-08-20",
@@ -132,9 +132,9 @@ class ImportBatchControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("""
                         {
-                          "store":{"id":1,"storeCode":"S-001","storeName":"城南店"},
+                          "store":{"id":"1","storeCode":"S-001","storeName":"城南店"},
                           "batch":{
-                            "batchId":88,
+                            "batchId":"88",
                             "importType":"DAILY_SALES",
                             "status":"POSTED",
                             "dataDate":"2026-08-20",
@@ -194,8 +194,8 @@ class ImportBatchControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("""
                         {
-                          "store":{"id":1,"storeCode":"S-001","storeName":"城南店"},
-                          "batchId":88,
+                          "store":{"id":"1","storeCode":"S-001","storeName":"城南店"},
+                          "batchId":"88",
                           "importType":"DAILY_SALES",
                           "dataDate":"2026-08-20",
                           "fileName":"销售汇总.xls",

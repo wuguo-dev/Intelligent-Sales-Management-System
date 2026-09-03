@@ -1,5 +1,7 @@
 package com.haowugou.controller.salesimport;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.haowugou.domain.importbatch.ImportRowError;
 import com.haowugou.domain.salesimport.DailySalesImportResult;
 import java.util.List;
@@ -18,7 +20,7 @@ import java.util.List;
  * @param errors 行级错误明细，最多返回 50 条
  */
 public record DailySalesImportResponse(
-        long batchId,
+        @JsonSerialize(using = ToStringSerializer.class) long batchId,
         String status,
         int totalRows,
         int successRows,

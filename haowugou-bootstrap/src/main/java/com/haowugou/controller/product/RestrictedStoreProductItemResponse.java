@@ -1,5 +1,7 @@
 package com.haowugou.controller.product;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.haowugou.domain.product.StoreProductListItem;
 import java.math.BigDecimal;
 
@@ -26,11 +28,11 @@ import java.math.BigDecimal;
  * @param currentQuantity 该门店当前库存数量
  */
 public record RestrictedStoreProductItemResponse(
-        Long productId,
+        @JsonSerialize(using = ToStringSerializer.class) Long productId,
         String barcode,
         String productName,
         String unit,
-        Long warehouseId,
+        @JsonSerialize(using = ToStringSerializer.class) Long warehouseId,
         String warehouseCode,
         String warehouseName,
         BigDecimal salePrice,

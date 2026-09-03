@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.haowugou.application.product.StoreProductQuery;
 import com.haowugou.controller.ApiExceptionHandler;
-import com.haowugou.domain.pagination.PageResult;
+import com.haowugou.domain.PageResult;
 import com.haowugou.domain.product.InventoryStatus;
 import com.haowugou.domain.product.PeriodSalesMetrics;
 import com.haowugou.domain.product.ProductDataStatus;
@@ -99,15 +99,15 @@ class StoreProductControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("""
                         {
-                          "store":{"id":1,"storeCode":"S-001","storeName":"城南店"},
+                          "store":{"id":"1","storeCode":"S-001","storeName":"城南店"},
                           "items":[{
-                            "productId":10,
+                            "productId":"10",
                             "barcode":"9556155017024",
                             "productName":"130g花王香皂",
                             "unit":"块",
-                            "categoryId":3,
+                            "categoryId":"3",
                             "categoryName":"香皂",
-                            "warehouseId":5,
+                            "warehouseId":"5",
                             "warehouseCode":"W-01",
                             "warehouseName":"日化仓",
                             "salePrice":5.0000,
@@ -179,15 +179,15 @@ class StoreProductControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("""
                         {
-                          "store":{"id":1,"storeCode":"S-001","storeName":"城南店"},
-                          "productId":10,
+                          "store":{"id":"1","storeCode":"S-001","storeName":"城南店"},
+                          "productId":"10",
                           "barcode":"9556155017024",
                           "productName":"130g花王香皂",
                           "unit":"块",
-                          "categoryId":3,
+                          "categoryId":"3",
                           "categoryCode":"C-03",
                           "categoryName":"香皂",
-                          "warehouseId":5,
+                          "warehouseId":"5",
                           "warehouseCode":"W-01",
                           "warehouseName":"日化仓",
                           "taxCostPrice":4.0000,
@@ -211,7 +211,7 @@ class StoreProductControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("""
                         [
-                          {"id":5,"storeId":1,"warehouseCode":"W-01","warehouseName":"日化仓"}
+                          {"id":"5","storeId":"1","warehouseCode":"W-01","warehouseName":"日化仓"}
                         ]
                         """, JsonCompareMode.STRICT));
     }
@@ -308,13 +308,13 @@ class StoreProductControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("""
                         {
-                          "store":{"id":1,"storeCode":"S-001","storeName":"城南店"},
+                          "store":{"id":"1","storeCode":"S-001","storeName":"城南店"},
                           "items":[{
-                            "productId":10,
+                            "productId":"10",
                             "barcode":"9556155017024",
                             "productName":"130g花王香皂",
                             "unit":"块",
-                            "warehouseId":5,
+                            "warehouseId":"5",
                             "warehouseCode":"W-01",
                             "warehouseName":"日化仓",
                             "salePrice":5.0000,
@@ -337,12 +337,12 @@ class StoreProductControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("""
                         {
-                          "store":{"id":1,"storeCode":"S-001","storeName":"城南店"},
-                          "productId":10,
+                          "store":{"id":"1","storeCode":"S-001","storeName":"城南店"},
+                          "productId":"10",
                           "barcode":"9556155017024",
                           "productName":"130g花王香皂",
                           "unit":"块",
-                          "warehouseId":5,
+                          "warehouseId":"5",
                           "warehouseCode":"W-01",
                           "warehouseName":"日化仓",
                           "salePrice":5.0000,

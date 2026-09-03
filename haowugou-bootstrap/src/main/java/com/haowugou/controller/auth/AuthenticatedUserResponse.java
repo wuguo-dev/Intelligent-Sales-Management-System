@@ -1,5 +1,7 @@
 package com.haowugou.controller.auth;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.haowugou.application.user.UserProfileResult;
 import com.haowugou.domain.store.Store;
 
@@ -22,7 +24,7 @@ import com.haowugou.domain.store.Store;
  * @param canViewCostAndProfit 是否可看到含税成本价与毛利字段
  */
 public record AuthenticatedUserResponse(
-        long userId,
+        @JsonSerialize(using = ToStringSerializer.class) long userId,
         String username,
         String displayName,
         int roleId,
@@ -44,7 +46,10 @@ public record AuthenticatedUserResponse(
     }
 
     /** 登录账号绑定的门店。 */
-    public record StoreResponse(Long id, String storeCode, String storeName) {
+    public record StoreResponse(
+            @JsonSerialize(using = ToStringSerializer.class) Long id,
+            String storeCode,
+            String storeName) {
 
         static StoreResponse from(Store store) {
             return store == null

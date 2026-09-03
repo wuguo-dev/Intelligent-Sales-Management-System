@@ -108,7 +108,7 @@ class AuthControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("""
                         {
-                          "userId":1,
+                          "userId":"1",
                           "username":"admin",
                           "displayName":"系统管理员",
                           "roleId":1,
@@ -127,12 +127,12 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().json("""
                         {
-                          "userId":2,
+                          "userId":"2",
                           "username":"store1user",
                           "displayName":"城南店店员",
                           "roleId":2,
                           "role":"USER",
-                          "store":{"id":7,"storeCode":"S-007","storeName":"城南店"},
+                          "store":{"id":"7","storeCode":"S-007","storeName":"城南店"},
                           "canManage":false,
                           "canViewCostAndProfit":false
                         }
@@ -253,11 +253,11 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().json("""
                         {
-                          "userId":2,
+                          "userId":"2",
                           "username":"store1user",
                           "roleId":2,
                           "role":"USER",
-                          "store":{"id":7,"storeCode":"S-007","storeName":"城南店"},
+                          "store":{"id":"7","storeCode":"S-007","storeName":"城南店"},
                           "canManage":false,
                           "canViewCostAndProfit":false
                         }

@@ -1,5 +1,7 @@
 package com.haowugou.controller.product;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.haowugou.domain.warehouse.WarehouseSummary;
 
 /**
@@ -10,7 +12,11 @@ import com.haowugou.domain.warehouse.WarehouseSummary;
  * @param warehouseCode 仓库编码
  * @param warehouseName 仓库名称
  */
-public record WarehouseResponse(Long id, Long storeId, String warehouseCode, String warehouseName) {
+public record WarehouseResponse(
+        @JsonSerialize(using = ToStringSerializer.class) Long id,
+        @JsonSerialize(using = ToStringSerializer.class) Long storeId,
+        String warehouseCode,
+        String warehouseName) {
 
     static WarehouseResponse from(WarehouseSummary warehouse) {
         return new WarehouseResponse(

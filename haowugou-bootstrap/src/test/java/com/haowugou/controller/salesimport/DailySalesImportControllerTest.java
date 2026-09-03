@@ -86,7 +86,7 @@ class DailySalesImportControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("""
                         {
-                          "batchId":42,
+                          "batchId":"42",
                           "status":"POSTED",
                           "totalRows":2,
                           "successRows":2,
@@ -147,7 +147,7 @@ class DailySalesImportControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().json("""
                         {
-                          "batchId":42,
+                          "batchId":"42",
                           "status":"POSTED",
                           "totalRows":2,
                           "successRows":2,
@@ -177,7 +177,7 @@ class DailySalesImportControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("""
                         {
-                          "batchId":43,
+                          "batchId":"43",
                           "status":"FAILED",
                           "totalRows":2,
                           "successRows":0,
