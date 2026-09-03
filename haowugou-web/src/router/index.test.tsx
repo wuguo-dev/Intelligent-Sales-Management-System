@@ -9,7 +9,7 @@ vi.mock('../api/auth', () => ({ fetchMe: vi.fn() }));
 import * as authApi from '../api/auth';
 
 const admin: UserProfile = {
-  userId: 1,
+  userId: '1',
   username: 'admin',
   displayName: '管理员',
   roleId: 1,

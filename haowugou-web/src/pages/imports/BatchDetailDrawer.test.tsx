@@ -20,7 +20,7 @@ import type { ImportBatchDetail } from '../../api/imports';
 import { getProblemDetailMessage } from '../../api/http';
 
 const admin: UserProfile = {
-  userId: 1,
+  userId: '1',
   username: 'admin',
   displayName: '管理员',
   roleId: 1,
@@ -31,9 +31,9 @@ const admin: UserProfile = {
 };
 
 const detail: ImportBatchDetail = {
-  store: { id: 5, storeCode: 'S005', storeName: '门店五' },
+  store: { id: '5', storeCode: 'S005', storeName: '门店五' },
   batch: {
-    batchId: 42,
+    batchId: '42',
     importType: 'DAILY_SALES',
     status: 'POSTED',
     dataDate: '2026-08-30',
@@ -60,8 +60,8 @@ function renderDrawer(batch: typeof detail = detail) {
   const onReversed = vi.fn();
   render(
     <BatchDetailDrawer
-      storeId={5}
-      batchId={42}
+      storeId={'5'}
+      batchId={'42'}
       open={true}
       onClose={onClose}
       onReversed={onReversed}
@@ -80,13 +80,13 @@ describe('BatchDetailDrawer', () => {
     renderDrawer();
     expect(await screen.findByText('sales.xlsx')).toBeInTheDocument();
     expect(screen.getByText('2026-08-30')).toBeInTheDocument();
-    expect(importsApi.getBatch).toHaveBeenCalledWith(5, 42, 0, 20);
+    expect(importsApi.getBatch).toHaveBeenCalledWith('5', '42', 0, 20);
   });
 
   it('可撤销批次点击撤销：默认操作人为当前用户、原因必填', async () => {
     vi.mocked(importsApi.reverseBatch).mockResolvedValue({
-      store: { id: 5, storeCode: 'S005', storeName: '门店五' },
-      batchId: 42,
+      store: { id: '5', storeCode: 'S005', storeName: '门店五' },
+      batchId: '42',
       importType: 'DAILY_SALES',
       dataDate: '2026-08-30',
       fileName: 'sales.xlsx',
@@ -107,7 +107,7 @@ describe('BatchDetailDrawer', () => {
     await userEvent.click(screen.getByRole('button', { name: /确认撤销/ }));
 
     await waitFor(() => expect(importsApi.reverseBatch).toHaveBeenCalled());
-    expect(importsApi.reverseBatch).toHaveBeenCalledWith(5, 42, {
+    expect(importsApi.reverseBatch).toHaveBeenCalledWith('5', '42', {
       reversedBy: '管理员',
       reversedReason: '填错日期',
     });

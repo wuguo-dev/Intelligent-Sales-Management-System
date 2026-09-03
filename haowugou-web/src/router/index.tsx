@@ -44,7 +44,8 @@ export async function storeScopedLoader({ request, params }: LoaderArgs): Promis
     }
   }
   const profile = useAuthStore.getState().profile!;
-  if (profile.store && params.storeId !== String(profile.store.id)) {
+  // 两边都是字符串 id（后端序列化为字符串），直接比较
+  if (profile.store && params.storeId !== profile.store.id) {
     const pathname = new URL(request.url).pathname;
     return redirect(swapStoreIdInPath(pathname, profile.store.id));
   }

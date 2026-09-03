@@ -15,7 +15,7 @@ vi.mock('../../api/imports', () => ({
 import * as importsApi from '../../api/imports';
 
 const admin: UserProfile = {
-  userId: 1,
+  userId: '1',
   username: 'admin',
   displayName: '管理员',
   roleId: 1,
@@ -26,7 +26,7 @@ const admin: UserProfile = {
 };
 
 const postedResult: ImportResult = {
-  batchId: 11,
+  batchId: '11',
   status: 'POSTED',
   totalRows: 8,
   successRows: 8,
@@ -89,7 +89,7 @@ describe('SalesImportPage', () => {
 
     await waitFor(() => expect(importsApi.importDailySales).toHaveBeenCalled());
     const [storeId, file, businessDate] = vi.mocked(importsApi.importDailySales).mock.calls[0];
-    expect(storeId).toBe(5);
+    expect(storeId).toBe('5');
     expect(file).toBeInstanceOf(File);
     expect(businessDate).toBe(picked.format('YYYY-MM-DD'));
   });

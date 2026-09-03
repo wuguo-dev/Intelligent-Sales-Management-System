@@ -13,18 +13,18 @@ vi.mock('../api/stores', () => ({ listStores: vi.fn().mockResolvedValue([]) }));
 import * as authApi from '../api/auth';
 
 const user: UserProfile = {
-  userId: 2,
+  userId: '2',
   username: 'store1user',
   displayName: '门店一用户',
   roleId: 2,
   role: 'USER',
-  store: { id: 1, storeCode: 'S001', storeName: '门店一' },
+  store: { id: '1', storeCode: 'S001', storeName: '门店一' },
   canManage: false,
   canViewCostAndProfit: false,
 };
 
 const admin: UserProfile = {
-  userId: 1,
+  userId: '1',
   username: 'admin',
   displayName: '管理员',
   roleId: 1,

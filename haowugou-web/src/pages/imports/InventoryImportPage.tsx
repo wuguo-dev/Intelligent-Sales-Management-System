@@ -14,7 +14,7 @@ import ImportResultPanel from './ImportResultPanel';
 
 interface FormValues {
   file?: UploadFile[];
-  warehouseId?: number;
+  warehouseId?: string;
 }
 
 /** antd Upload 与 Form 的标准接线：表单态存 fileList，提交时取 originFileObj。 */
@@ -23,7 +23,8 @@ function normFile(e: { fileList: UploadFile[] }): UploadFile[] {
 }
 
 export default function InventoryImportPage() {
-  const storeId = Number(useParams().storeId);
+  // storeId 是 URL 段的字符串：64 位主键不做 Number() 转换（会丢精度）
+  const storeId = useParams().storeId ?? '';
   useStoreSync(storeId);
   const navigate = useNavigate();
 

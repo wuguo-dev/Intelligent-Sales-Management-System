@@ -16,7 +16,7 @@ import * as importsApi from '../../api/imports';
 import type { ImportBatchPage } from '../../api/imports';
 
 const admin: UserProfile = {
-  userId: 1,
+  userId: '1',
   username: 'admin',
   displayName: '管理员',
   roleId: 1,
@@ -27,10 +27,10 @@ const admin: UserProfile = {
 };
 
 const pageData: ImportBatchPage = {
-  store: { id: 5, storeCode: 'S005', storeName: '门店五' },
+  store: { id: '5', storeCode: 'S005', storeName: '门店五' },
   items: [
     {
-      batchId: 42,
+      batchId: '42',
       importType: 'DAILY_SALES',
       status: 'POSTED',
       dataDate: '2026-08-30',
@@ -44,7 +44,7 @@ const pageData: ImportBatchPage = {
       reversible: true,
     },
     {
-      batchId: 43,
+      batchId: '43',
       importType: 'INITIAL_INVENTORY',
       status: 'FAILED',
       dataDate: null,
@@ -76,7 +76,7 @@ describe('ImportBatchesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useAuthStore.setState({ profile: admin });
-    useAppStore.setState({ stores: [], currentStoreId: 5 });
+    useAppStore.setState({ stores: [], currentStoreId: '5' });
     vi.mocked(importsApi.listBatches).mockResolvedValue(pageData);
   });
 
@@ -84,7 +84,7 @@ describe('ImportBatchesPage', () => {
     renderPage();
     expect(await screen.findByText('sales.xlsx')).toBeInTheDocument();
     expect(screen.getByText('stock.xlsx')).toBeInTheDocument();
-    expect(importsApi.listBatches).toHaveBeenCalledWith(5, { page: 0, size: 20 });
+    expect(importsApi.listBatches).toHaveBeenCalledWith('5', { page: 0, size: 20 });
   });
 
   it('筛选提交后带筛选参数重新请求', async () => {
@@ -102,7 +102,7 @@ describe('ImportBatchesPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /查\s*询/ }));
 
     await waitFor(() =>
-      expect(importsApi.listBatches).toHaveBeenLastCalledWith(5, {
+      expect(importsApi.listBatches).toHaveBeenLastCalledWith('5', {
         importType: 'DAILY_SALES',
         page: 0,
         size: 20,
@@ -114,7 +114,7 @@ describe('ImportBatchesPage', () => {
     vi.mocked(importsApi.getBatch).mockResolvedValue({
       store: pageData.store,
       batch: {
-        batchId: 42,
+        batchId: '42',
         importType: 'DAILY_SALES',
         status: 'POSTED',
         dataDate: '2026-08-30',

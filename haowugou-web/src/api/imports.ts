@@ -6,7 +6,7 @@ export type ImportBatchStatus = 'VALIDATING' | 'POSTING' | 'POSTED' | 'REVERSED'
 export type ImportResultStatus = 'POSTED' | 'FAILED';
 
 export interface ImportBatchItem {
-  batchId: number;
+  batchId: string;
   importType: ImportType;
   status: ImportBatchStatus;
   dataDate: string | null;
@@ -39,7 +39,7 @@ export interface ImportBatchProblemRow {
 export interface ImportBatchDetail {
   store: StoreView;
   batch: {
-    batchId: number;
+    batchId: string;
     importType: ImportType;
     status: ImportBatchStatus;
     dataDate: string | null;
@@ -67,8 +67,8 @@ export interface ImportBatchDetail {
 }
 
 export interface WarehouseView {
-  id: number;
-  storeId: number;
+  id: string;
+  storeId: string;
   warehouseCode: string | null;
   warehouseName: string;
 }
@@ -80,7 +80,7 @@ export interface RowError {
 }
 
 export interface ImportResult {
-  batchId: number;
+  batchId: string;
   status: ImportResultStatus;
   totalRows: number;
   successRows: number;
@@ -93,7 +93,7 @@ export interface ImportResult {
 
 export interface ReverseResult {
   store: StoreView;
-  batchId: number;
+  batchId: string;
   importType: ImportType;
   dataDate: string | null;
   fileName: string;
@@ -114,7 +114,7 @@ export interface ListBatchesCriteria {
 }
 
 export async function listBatches(
-  storeId: number,
+  storeId: string,
   criteria: ListBatchesCriteria,
 ): Promise<ImportBatchPage> {
   const { data } = await http.get<ImportBatchPage>(`/api/stores/${storeId}/import-batches`, {
@@ -124,8 +124,8 @@ export async function listBatches(
 }
 
 export async function getBatch(
-  storeId: number,
-  batchId: number,
+  storeId: string,
+  batchId: string,
   page: number,
   size: number,
 ): Promise<ImportBatchDetail> {
@@ -137,8 +137,8 @@ export async function getBatch(
 }
 
 export async function reverseBatch(
-  storeId: number,
-  batchId: number,
+  storeId: string,
+  batchId: string,
   body: { reversedBy: string; reversedReason: string },
 ): Promise<ReverseResult> {
   const { data } = await http.post<ReverseResult>(
@@ -150,9 +150,9 @@ export async function reverseBatch(
 
 /** 初始库存导入（multipart）；不手工设 Content-Type，axios 自动带 boundary。 */
 export async function importInventory(
-  storeId: number,
+  storeId: string,
   file: File,
-  warehouseId?: number,
+  warehouseId?: string,
 ): Promise<ImportResult> {
   const form = new FormData();
   form.append('file', file);
@@ -165,7 +165,7 @@ export async function importInventory(
 
 /** 每日销售导入（multipart）；businessDate 必填（POS 文件无日期列）。 */
 export async function importDailySales(
-  storeId: number,
+  storeId: string,
   file: File,
   businessDate: string,
 ): Promise<ImportResult> {
@@ -176,7 +176,7 @@ export async function importDailySales(
   return data;
 }
 
-export async function listWarehouses(storeId: number): Promise<WarehouseView[]> {
+export async function listWarehouses(storeId: string): Promise<WarehouseView[]> {
   const { data } = await http.get<WarehouseView[]>(`/api/stores/${storeId}/warehouses`);
   return data;
 }

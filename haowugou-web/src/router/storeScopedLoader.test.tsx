@@ -8,7 +8,7 @@ vi.mock('../api/auth', () => ({ fetchMe: vi.fn() }));
 import * as authApi from '../api/auth';
 
 const admin: UserProfile = {
-  userId: 1,
+  userId: '1',
   username: 'admin',
   displayName: '管理员',
   roleId: 1,
@@ -18,12 +18,12 @@ const admin: UserProfile = {
   canViewCostAndProfit: true,
 };
 const user: UserProfile = {
-  userId: 2,
+  userId: '2',
   username: 'store1user',
   displayName: '门店查询员',
   roleId: 2,
   role: 'USER',
-  store: { id: 7, storeCode: 'S007', storeName: '门店七' },
+  store: { id: '7', storeCode: 'S007', storeName: '门店七' },
   canManage: false,
   canViewCostAndProfit: false,
 };

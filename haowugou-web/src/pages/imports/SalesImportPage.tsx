@@ -19,7 +19,8 @@ function normFile(e: { fileList: UploadFile[] }): UploadFile[] {
 }
 
 export default function SalesImportPage() {
-  const storeId = Number(useParams().storeId);
+  // storeId 是 URL 段的字符串：64 位主键不做 Number() 转换（会丢精度）
+  const storeId = useParams().storeId ?? '';
   useStoreSync(storeId);
   const navigate = useNavigate();
 

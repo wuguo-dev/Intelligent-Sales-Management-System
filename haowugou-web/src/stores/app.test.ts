@@ -7,8 +7,8 @@ vi.mock('../api/stores', () => ({ listStores: vi.fn() }));
 import * as storesApi from '../api/stores';
 
 const stores: StoreView[] = [
-  { id: 1, storeCode: 'S001', storeName: '门店一' },
-  { id: 2, storeCode: 'S002', storeName: '门店二' },
+  { id: '1', storeCode: 'S001', storeName: '门店一' },
+  { id: '2', storeCode: 'S002', storeName: '门店二' },
 ];
 
 describe('app store', () => {
@@ -30,12 +30,12 @@ describe('app store', () => {
   });
 
   it('selectStore 保存选中门店', () => {
-    useAppStore.getState().selectStore(2);
-    expect(useAppStore.getState().currentStoreId).toBe(2);
+    useAppStore.getState().selectStore('2');
+    expect(useAppStore.getState().currentStoreId).toBe('2');
   });
 
   it('clearStore 清空选中与列表', () => {
-    useAppStore.setState({ stores, currentStoreId: 1 });
+    useAppStore.setState({ stores, currentStoreId: '1' });
     useAppStore.getState().clearStore();
     expect(useAppStore.getState().currentStoreId).toBeNull();
     expect(useAppStore.getState().stores).toEqual([]);

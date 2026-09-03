@@ -5,7 +5,7 @@ import { useAuthStore } from '../stores/auth';
 import HomePage from './HomePage';
 
 const admin: UserProfile = {
-  userId: 1,
+  userId: '1',
   username: 'admin',
   displayName: '管理员',
   roleId: 1,
@@ -29,12 +29,12 @@ describe('HomePage', () => {
   it('普通用户展示绑定门店', () => {
     useAuthStore.setState({
       profile: {
-        userId: 2,
+        userId: '2',
         username: 'store1user',
         displayName: '门店一用户',
         roleId: 2,
         role: 'USER',
-        store: { id: 1, storeCode: 'S001', storeName: '门店一' },
+        store: { id: '1', storeCode: 'S001', storeName: '门店一' },
         canManage: false,
         canViewCostAndProfit: false,
       },

@@ -1,6 +1,7 @@
 /** 与后端 `AuthenticatedUserResponse.StoreResponse` 1:1。 */
 export interface StoreView {
-  id: number;
+  /** 后端序列化为字符串的 64 位主键（JSON 数字会丢精度）。 */
+  id: string;
   storeCode: string;
   storeName: string;
 }
@@ -9,7 +10,8 @@ export type UserRole = 'ADMIN' | 'USER';
 
 /** 与后端 `AuthenticatedUserResponse` 1:1（login 与 me 共用）。 */
 export interface UserProfile {
-  userId: number;
+  /** 后端序列化为字符串的 64 位主键。 */
+  userId: string;
   username: string;
   displayName: string;
   roleId: number; // 1 管理员，2 普通用户——仅展示用，权限判定用 canManage/canViewCostAndProfit

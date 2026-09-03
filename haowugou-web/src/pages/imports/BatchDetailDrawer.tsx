@@ -28,8 +28,8 @@ const PARSE_STATUS_COLOR: Record<string, string> = {
 };
 
 interface Props {
-  storeId: number;
-  batchId: number | null;
+  storeId: string;
+  batchId: string | null;
   open: boolean;
   onClose: () => void;
   onReversed: () => void;

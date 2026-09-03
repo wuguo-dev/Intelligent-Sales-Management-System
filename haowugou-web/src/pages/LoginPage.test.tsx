@@ -22,7 +22,7 @@ import * as authApi from '../api/auth';
 import { getProblemDetailMessage } from '../api/http';
 
 const admin: UserProfile = {
-  userId: 1,
+  userId: '1',
   username: 'admin',
   displayName: '管理员',
   roleId: 1,

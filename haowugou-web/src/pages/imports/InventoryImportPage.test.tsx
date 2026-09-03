@@ -21,7 +21,7 @@ import type { ImportResult } from '../../api/imports';
 import { getProblemDetailMessage } from '../../api/http';
 
 const admin: UserProfile = {
-  userId: 1,
+  userId: '1',
   username: 'admin',
   displayName: '管理员',
   roleId: 1,
@@ -32,7 +32,7 @@ const admin: UserProfile = {
 };
 
 const postedResult: ImportResult = {
-  batchId: 9,
+  batchId: '9',
   status: 'POSTED',
   totalRows: 3,
   successRows: 3,
@@ -40,7 +40,7 @@ const postedResult: ImportResult = {
   errors: [],
 };
 const failedResult: ImportResult = {
-  batchId: 10,
+  batchId: '10',
   status: 'FAILED',
   totalRows: 3,
   successRows: 0,
@@ -84,7 +84,7 @@ describe('InventoryImportPage', () => {
 
     await waitFor(() => expect(importsApi.importInventory).toHaveBeenCalled());
     const [storeId, file, warehouseId] = vi.mocked(importsApi.importInventory).mock.calls[0];
-    expect(storeId).toBe(5);
+    expect(storeId).toBe('5');
     expect(file).toBeInstanceOf(File);
     expect(warehouseId).toBeUndefined();
   });
