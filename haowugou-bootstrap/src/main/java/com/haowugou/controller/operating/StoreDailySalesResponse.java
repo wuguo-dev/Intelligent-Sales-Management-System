@@ -1,5 +1,7 @@
 package com.haowugou.controller.operating;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.haowugou.domain.sales.StoreDailySales;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -19,7 +21,7 @@ import java.time.LocalDate;
  * @param dataOrigin 数据来源，例如 {@code DEMO}
  */
 public record StoreDailySalesResponse(
-        Long storeId,
+        @JsonSerialize(using = ToStringSerializer.class) Long storeId,
         LocalDate businessDate,
         BigDecimal totalSalesAmount,
         int orderCount,

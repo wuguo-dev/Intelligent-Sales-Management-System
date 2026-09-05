@@ -1,5 +1,8 @@
 package com.haowugou.controller;
 
+import com.haowugou.application.importbatch.exception.BatchNotReversibleException;
+import com.haowugou.application.importbatch.exception.ImportBatchNotFoundException;
+import com.haowugou.application.importbatch.exception.InvalidImportBatchQueryException;
 import com.haowugou.application.inventoryimport.exception.ActiveInitialBatchExistsException;
 import com.haowugou.application.inventoryimport.exception.DuplicateImportFileException;
 import com.haowugou.application.inventoryimport.exception.ImportWarehouseException;
@@ -12,6 +15,9 @@ import com.haowugou.application.product.exception.WarehouseNotInStoreException;
 import com.haowugou.application.salesimport.exception.DuplicateSalesFileException;
 import com.haowugou.application.salesimport.exception.InvalidSalesImportException;
 import com.haowugou.application.salesimport.exception.PostedSalesBatchExistsException;
+import com.haowugou.application.user.exception.InvalidUserQueryException;
+import com.haowugou.application.user.exception.UserAccountNotFoundException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -94,6 +100,52 @@ public class ApiExceptionHandler {
         return conflict(exception.getMessage());
     }
 
+    @ExceptionHandler(ImportBatchNotFoundException.class)
+    ProblemDetail handleImportBatchNotFound(ImportBatchNotFoundException exception) {
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+        detail.setTitle("导入批次不存在");
+        return detail;
+    }
+
+    @ExceptionHandler(InvalidImportBatchQueryException.class)
+    ProblemDetail handleInvalidImportBatchQuery(InvalidImportBatchQueryException exception) {
+        return badRequest(exception.getMessage());
+    }
+
+    /** 批次状态不是 POSTED，含并发下已被别的请求撤销的情况。 */
+    @ExceptionHandler(BatchNotReversibleException.class)
+    ProblemDetail handleBatchNotReversible(BatchNotReversibleException exception) {
+        return conflict(exception.getMessage(), "批次不可撤销");
+    }
+
+    /**
+     * 登录失败。
+     *
+     * <p>统一回同一句话，不区分账号不存在与密码错误：分开说等于给出账号枚举接口。
+     * 也不回 {@code exception.getMessage()}，那里可能带上账号是否存在的线索。
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    ProblemDetail handleAuthenticationFailure(AuthenticationException exception) {
+        ProblemDetail detail =
+                ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "账号或密码错误");
+        detail.setTitle("登录失败");
+        return detail;
+    }
+
+    /** 账号在登录之后被停用或删除，前端应引导重新登录。 */
+    @ExceptionHandler(UserAccountNotFoundException.class)
+    ProblemDetail handleUserAccountNotFound(UserAccountNotFoundException exception) {
+        ProblemDetail detail =
+                ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+        detail.setTitle("账号不存在或已停用");
+        return detail;
+    }
+
+    @ExceptionHandler(InvalidUserQueryException.class)
+    ProblemDetail handleInvalidUserQuery(InvalidUserQueryException exception) {
+        return badRequest(exception.getMessage());
+    }
+
     @ExceptionHandler(MissingServletRequestParameterException.class)
     ProblemDetail handleMissingParameter(MissingServletRequestParameterException exception) {
         return badRequest("缺少请求参数: " + exception.getParameterName());
@@ -131,8 +183,12 @@ public class ApiExceptionHandler {
     }
 
     private ProblemDetail conflict(String message) {
+        return conflict(message, "导入冲突");
+    }
+
+    private ProblemDetail conflict(String message, String title) {
         ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
-        detail.setTitle("导入冲突");
+        detail.setTitle(title);
         return detail;
     }
 }

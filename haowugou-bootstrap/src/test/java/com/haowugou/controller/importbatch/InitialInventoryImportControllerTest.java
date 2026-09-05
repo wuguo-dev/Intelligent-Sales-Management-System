@@ -84,7 +84,7 @@ class InitialInventoryImportControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("""
                         {
-                          "batchId":42,
+                          "batchId":"42",
                           "status":"POSTED",
                           "totalRows":2,
                           "successRows":2,
@@ -122,7 +122,7 @@ class InitialInventoryImportControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("""
                         {
-                          "batchId":43,
+                          "batchId":"43",
                           "status":"FAILED",
                           "totalRows":1,
                           "successRows":0,

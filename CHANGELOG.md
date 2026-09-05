@@ -2,6 +2,19 @@
 
 本文件记录项目开发阶段的重要功能、设计调整与验证结果。
 
+## 2026-09-01 重构
+
+### 基础设施层重组（persistence 包）
+- 由「技术角色优先」改为「功能优先」，与 domain/、application/、controller/ 的分包方式对齐
+- 原 `adapter/`、`mapper/`、`data/` 三层按功能重组为 `store/`、`product/`、`warehouse/`、`inventory/`、`sales/`
+- 保留 `importbatch/`、`salesimport/`、`user/` 三个完整功能包不变（内部已是 Mapper + Row + Repository 混合）
+- 影响 17 个 Java 文件 + 6 个 Mapper XML + 1 个集成测试，全量测试 221/221 通过（4 个跳过符合预期）
+
+### 文档与资源整理
+- `docs/superpowers/specs/` 重命名为 `docs/design/`（设计文档）
+- `progress.md`、`task_plan.md`、`findings.md` 归档至 `docs/archive/`（开发过程产物）
+- `database/好物购数据库建表.sql` 重命名为 `database/schema.sql`（避免中文文件名跨平台问题）
+
 ## [Unreleased]
 
 ### 新增
@@ -37,6 +50,29 @@
   `deductedProducts` 摘要；
 - 新增 19 个用例单测、9 个解析器单测、13 个 MockMvc 契约测试、8 个真实 MySQL 全链路集成测试
   与 1 个真实 POS 文件端到端测试（文件路径取自环境变量，结束回滚不留数据）。
+- 建立导入批次查询与撤销纵向切片（跨导入类型共用，端口复用 `domain.importbatch`）：
+  `ImportBatchQueryRepository`/`ImportBatchReversalRepository` 端口与值对象、
+  `ImportBatchQuery` 与 `ReverseImportBatch` 应用用例（门店校验、分页与日期区间校验、
+  可撤销性判定）、`ImportBatchAdminMapper` 单事务撤销实现（先翻状态兼作乐观锁 → 读原流水
+  → 读当前余额 → `CASE product_id` 批量回滚库存 → 与原流水 1:1 写 `REVERSAL` 反向流水，
+  `balance_before` 取库内当前值以满足流水平衡 CHECK，`business_date` 沿用原流水）；
+- 新增 `GET /api/stores/{storeId}/import-batches`（按导入类型、批次状态、数据日期区间筛选，
+  按上传时间倒序分页）、`GET /api/stores/{storeId}/import-batches/{batchId}`（批次详情 +
+  问题行独立分页，只返回非 VALID 行）、
+  `POST /api/stores/{storeId}/import-batches/{batchId}/reverse`（撤销，必填操作人与原因）
+  三个 REST 接口；批次不属于该门店按 404 处理，不泄露其他门店批次的存在。
+- 新增 13 个用例单测、12 个 MockMvc 契约测试与 7 个真实 MySQL 全链路集成测试
+  （覆盖销售批次撤销后库存与余额链复原、撤销后同文件同日期重传、重复撤销拒绝、
+  撤销初始库存导致负库存、跨门店隔离、失败批次问题行与不可撤销、问题行独立分页）。
+
+### 变更
+
+- 文件指纹查重从 `uk_import_batch_file_hash (store_id, import_type, file_hash)` 改为建在新增
+  生成列 `active_file_hash` 上的 `uk_import_batch_active_file_hash`，与
+  `active_sales_date`/`active_initial_inventory` 统一口径：只有 POSTED 批次占用坑位。
+  撤销与失败批次释放指纹，同一份文件可以重传（业务日期填错时文件本身没问题，
+  「改内容让哈希变化」对该场景不成立）。两条导入链路的 `countBatchByFileHash` 同步改查生成列。
+  迁移脚本：`database/migration/2026-08-30-import-batch-active-file-hash.sql`（不幂等）。
 
 ### 调整
 

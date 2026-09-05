@@ -10,7 +10,11 @@ import java.util.Map;
  */
 public interface ImportBatchRepository {
 
-    /** 同门店、同导入类型、同文件指纹是否已导入过。 */
+    /**
+     * 同门店、同导入类型、同文件指纹是否已有<strong>有效</strong>批次。
+     *
+     * <p>只看有效批次：批次被撤销或失败后同一份文件可以重传。
+     */
     boolean existsFileHash(long storeId, String fileHash);
 
     /** 门店是否已有仍有效的初始库存批次。 */

@@ -10,3 +10,14 @@ spring:
 
 server:
   port: 8080
+  servlet:
+    session:
+      # 会话 Cookie 是登录凭据本体，被拿到就等于拿到账号，所以三项都要收紧：
+      # http-only 挡 JS 读取（XSS 偷 cookie）；same-site=strict 挡跨站携带（CSRF 的第一道闸，
+      # CSRF token 是第二道）；timeout 限制凭据的有效窗口。
+      # secure 没有开：本地是 http，开了 cookie 直接发不出去；上线走 HTTPS 时必须在生产 profile
+      # 里补 server.servlet.session.cookie.secure=true。
+      timeout: 30m
+      cookie:
+        http-only: true
+        same-site: strict

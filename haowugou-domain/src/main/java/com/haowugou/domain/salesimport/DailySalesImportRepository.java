@@ -13,7 +13,11 @@ import java.util.Map;
  */
 public interface DailySalesImportRepository {
 
-    /** 同门店、DAILY_SALES 类型、同文件指纹是否已导入过。 */
+    /**
+     * 同门店、DAILY_SALES 类型、同文件指纹是否已有<strong>有效</strong>批次。
+     *
+     * <p>只看有效批次：批次被撤销或失败后同一份文件可以重传。
+     */
     boolean existsFileHash(long storeId, String fileHash);
 
     /** 该门店该业务日期是否已有 POSTED 销售批次。 */

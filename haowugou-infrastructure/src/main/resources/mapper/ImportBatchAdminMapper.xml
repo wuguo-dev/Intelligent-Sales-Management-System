@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.haowugou.infrastructure.persistence.importbatch.ImportBatchAdminMapper">
+
+    <sql id="batchFilters">
+        WHERE b.store_id = #{criteria.storeId}
+        <if test="criteria.importType != null">
+            AND b.import_type = #{criteria.importType}
+        </if>
+        <if test="criteria.status != null">
+            AND b.status = #{criteria.status}
+        </if>
+        <if test="criteria.dataDateFrom != null">
+            AND b.data_date &gt;= #{criteria.dataDateFrom}
+        </if>
+        <if test="criteria.dataDateTo != null">
+            AND b.data_date &lt;= #{criteria.dataDateTo}
+        </if>
+    </sql>
+
+    <select id="countBatches" resultType="long">
+        SELECT COUNT(*)
+        FROM import_batch b
+        <include refid="batchFilters"/>
+    </select>
+
+    <select id="findBatchPage"
+            resultType="com.haowugou.infrastructure.persistence.importbatch.ImportBatchSummaryRow">
+        SELECT b.id           AS batch_id,
+               b.store_id,
+               b.import_type,
+               b.status,
+               b.data_date,
+               b.file_name,
+               b.total_rows,
+               b.success_rows,
+               b.error_rows,
+               b.imported_at,
+               b.posted_at,
+               b.reversed_at
+        FROM import_batch b
+        <include refid="batchFilters"/>
+        ORDER BY b.imported_at DESC, b.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findBatchDetail"
+            resultType="com.haowugou.infrastructure.persistence.importbatch.ImportBatchSummaryRow">
+        SELECT b.id           AS batch_id,
+               b.store_id,
+               b.import_type,
+               b.status,
+               b.data_date,
+               b.file_name,
+               b.file_hash,
+               b.total_rows,
+               b.success_rows,
+               b.error_rows,
+               b.operator_name,
+               b.error_message,
+               b.imported_at,
+               b.posted_at,
+               b.reversed_at,
+               b.reversed_by,
+               b.reversed_reason
+        FROM import_batch b
+        WHERE b.id = #{batchId}
+          AND b.store_id = #{storeId}
+    </select>
+
+    <!--
+      import_raw_row 的外键只有 batch_id，没有 store_id（其余批次相关表都是复合外键）。
+      所以必须 join import_batch 并把 store_id 放进条件，否则传别的门店的 batchId 能读到对方数据。
+    -->
+    <select id="countProblemRows" resultType="long">
+        SELECT COUNT(*)
+        FROM import_raw_row r
+                 JOIN import_batch b ON b.id = r.batch_id AND b.store_id = #{storeId}
+        WHERE r.batch_id = #{batchId}
+          AND r.parse_status &lt;&gt; 'VALID'
+    </select>
+
+    <select id="findProblemRowPage"
+            resultType="com.haowugou.infrastructure.persistence.importbatch.ImportProblemRowObject">
+        SELECT r.`row_number`,
+               r.barcode,
+               r.parse_status,
+               r.error_message
+        FROM import_raw_row r
+                 JOIN import_batch b ON b.id = r.batch_id AND b.store_id = #{storeId}
+        WHERE r.batch_id = #{batchId}
+          AND r.parse_status &lt;&gt; 'VALID'
+        ORDER BY r.`row_number`
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findOriginalMovements"
+            resultType="com.haowugou.infrastructure.persistence.importbatch.OriginalMovementRow">
+        SELECT m.id AS movement_id,
+               m.product_id,
+               m.business_date,
+               m.quantity_change
+        FROM inventory_movement m
+        WHERE m.batch_id = #{batchId}
+          AND m.store_id = #{storeId}
+          AND m.movement_type &lt;&gt; 'REVERSAL'
+        ORDER BY m.id
+    </select>
+
+    <select id="findCurrentQuantities"
+            resultType="com.haowugou.infrastructure.persistence.importbatch.InventoryQuantityRow">
+        SELECT product_id, current_quantity
+        FROM store_product_inventory
+        WHERE store_id = #{storeId}
+          AND product_id IN
+        <foreach collection="productIds" item="productId" open="(" separator="," close=")">
+            #{productId}
+        </foreach>
+    </select>
+
+    <!--
+      库存回滚：主键 (store_id, product_id) 必然已存在（原批次写过），所以用 UPDATE 而非 upsert。
+      CASE 逐商品取增量，一条语句更新整批，保持与 upsertInventory 一致的「不覆盖仓库分配」语义。
+    -->
+    <update id="applyInventoryDeltas">
+        UPDATE store_product_inventory
+        SET current_quantity = current_quantity +
+        <trim prefix="CASE product_id" suffix="END">
+            <foreach collection="rows" item="row">
+                WHEN #{row.productId} THEN #{row.quantityDelta}
+            </foreach>
+        </trim>
+        , version = version + 1
+        WHERE store_id = #{storeId}
+          AND product_id IN
+        <foreach collection="rows" item="row" open="(" separator="," close=")">
+            #{row.productId}
+        </foreach>
+    </update>
+
+    <insert id="insertReversalMovements">
+        INSERT INTO inventory_movement
+            (store_id, product_id, batch_id, business_date, movement_type,
+             quantity_change, balance_before, balance_after, reversal_of_id)
+        VALUES
+        <foreach collection="rows" item="row" separator=",">
+            (#{storeId}, #{row.productId}, #{batchId}, #{row.businessDate}, 'REVERSAL',
+             #{row.quantityChange}, #{row.balanceBefore}, #{row.balanceAfter}, #{row.reversalOfId})
+        </foreach>
+    </insert>
+
+    <!-- status = 'POSTED' 是并发下的唯一判据：影响 0 行说明已被别的请求撤销。 -->
+    <update id="markReversed">
+        UPDATE import_batch
+        SET status          = 'REVERSED',
+            reversed_at     = #{reversedAt},
+            reversed_by     = #{reversedBy},
+            reversed_reason = #{reversedReason}
+        WHERE id = #{batchId}
+          AND store_id = #{storeId}
+          AND status = 'POSTED'
+    </update>
+</mapper>
