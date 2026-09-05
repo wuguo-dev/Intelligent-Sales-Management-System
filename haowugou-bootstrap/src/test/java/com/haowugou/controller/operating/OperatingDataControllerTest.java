@@ -62,8 +62,8 @@ class OperatingDataControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("""
                         [
-                          {"id":1,"storeCode":"STORE_001","storeName":"好物购一店"},
-                          {"id":2,"storeCode":"STORE_002","storeName":"好物购二店"}
+                          {"id":"1","storeCode":"STORE_001","storeName":"好物购一店"},
+                          {"id":"2","storeCode":"STORE_002","storeName":"好物购二店"}
                         ]
                         """, JsonCompareMode.STRICT));
     }
@@ -76,7 +76,7 @@ class OperatingDataControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().json("""
                         {
-                          "storeId":1,
+                          "storeId":"1",
                           "businessDate":"2026-08-23",
                           "totalSalesAmount":3896.20,
                           "orderCount":132,
@@ -95,7 +95,7 @@ class OperatingDataControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().json("""
                         [{
-                          "productId":1,
+                          "productId":"1",
                           "barcode":"6941335429200",
                           "productName":"KM-6767台灯",
                           "unit":"个",

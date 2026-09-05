@@ -2,7 +2,7 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.haowugou.infrastructure.persistence.mapper.StoreProductQueryMapper">
+<mapper namespace="com.haowugou.infrastructure.persistence.product.StoreProductQueryMapper">
 
     <sql id="productFilters">
         v.store_id = #{criteria.storeId}
@@ -47,7 +47,7 @@
     </select>
 
     <select id="findProductPage"
-            resultType="com.haowugou.infrastructure.persistence.data.StoreProductRow">
+            resultType="com.haowugou.infrastructure.persistence.product.StoreProductRow">
         SELECT
             v.product_id,
             v.barcode,
@@ -71,7 +71,7 @@
     </select>
 
     <select id="findProductDetail"
-            resultType="com.haowugou.infrastructure.persistence.data.StoreProductRow">
+            resultType="com.haowugou.infrastructure.persistence.product.StoreProductRow">
         SELECT
             v.product_id,
             v.barcode,
@@ -96,7 +96,7 @@
     </select>
 
     <select id="findSuppliers"
-            resultType="com.haowugou.infrastructure.persistence.data.ProductSupplierRow">
+            resultType="com.haowugou.infrastructure.persistence.product.ProductSupplierRow">
         SELECT ps.product_id, s.supplier_name
         FROM product_supplier ps
         INNER JOIN supplier s ON s.id = ps.supplier_id
@@ -111,7 +111,7 @@
     </select>
 
     <select id="findSalesMetrics"
-            resultType="com.haowugou.infrastructure.persistence.data.ProductSalesMetricsRow">
+            resultType="com.haowugou.infrastructure.persistence.product.ProductSalesMetricsRow">
         SELECT
             sales.product_id,
             COALESCE(SUM(sales.sales_quantity), 0) AS sales_quantity,

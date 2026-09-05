@@ -1,6 +1,6 @@
 package com.haowugou.application.product;
 
-import com.haowugou.domain.product.PageResult;
+import com.haowugou.domain.pagination.PageResult;
 import com.haowugou.domain.product.StoreProductListItem;
 import com.haowugou.domain.store.Store;
 

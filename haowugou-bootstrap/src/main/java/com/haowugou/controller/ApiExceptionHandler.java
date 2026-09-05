@@ -1,16 +1,32 @@
 package com.haowugou.controller;
 
-import com.haowugou.application.operating.InvalidOperatingDataQueryException;
-import com.haowugou.application.operating.StoreNotFoundException;
-import com.haowugou.application.product.InvalidStoreProductQueryException;
-import com.haowugou.application.product.StoreProductNotFoundException;
-import com.haowugou.application.product.WarehouseNotInStoreException;
+import com.haowugou.application.importbatch.exception.BatchNotReversibleException;
+import com.haowugou.application.importbatch.exception.ImportBatchNotFoundException;
+import com.haowugou.application.importbatch.exception.InvalidImportBatchQueryException;
+import com.haowugou.application.inventoryimport.exception.ActiveInitialBatchExistsException;
+import com.haowugou.application.inventoryimport.exception.DuplicateImportFileException;
+import com.haowugou.application.inventoryimport.exception.ImportWarehouseException;
+import com.haowugou.application.inventoryimport.exception.InvalidImportFileException;
+import com.haowugou.application.operating.exception.InvalidOperatingDataQueryException;
+import com.haowugou.application.operating.exception.StoreNotFoundException;
+import com.haowugou.application.product.exception.InvalidStoreProductQueryException;
+import com.haowugou.application.product.exception.StoreProductNotFoundException;
+import com.haowugou.application.product.exception.WarehouseNotInStoreException;
+import com.haowugou.application.salesimport.exception.DuplicateSalesFileException;
+import com.haowugou.application.salesimport.exception.InvalidSalesImportException;
+import com.haowugou.application.salesimport.exception.PostedSalesBatchExistsException;
+import com.haowugou.application.user.exception.InvalidUserQueryException;
+import com.haowugou.application.user.exception.UserAccountNotFoundException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 /**
  * 将可预期的应用异常转换为统一的 Problem Detail 响应。
@@ -49,9 +65,110 @@ public class ApiExceptionHandler {
         return badRequest(exception.getMessage());
     }
 
+    @ExceptionHandler(InvalidImportFileException.class)
+    ProblemDetail handleInvalidImportFile(InvalidImportFileException exception) {
+        return badRequest(exception.getMessage());
+    }
+
+    @ExceptionHandler(ImportWarehouseException.class)
+    ProblemDetail handleImportWarehouse(ImportWarehouseException exception) {
+        return badRequest(exception.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateImportFileException.class)
+    ProblemDetail handleDuplicateImportFile(DuplicateImportFileException exception) {
+        return conflict(exception.getMessage());
+    }
+
+    @ExceptionHandler(ActiveInitialBatchExistsException.class)
+    ProblemDetail handleActiveInitialBatch(ActiveInitialBatchExistsException exception) {
+        return conflict(exception.getMessage());
+    }
+
+    @ExceptionHandler(InvalidSalesImportException.class)
+    ProblemDetail handleInvalidSalesImport(InvalidSalesImportException exception) {
+        return badRequest(exception.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateSalesFileException.class)
+    ProblemDetail handleDuplicateSalesFile(DuplicateSalesFileException exception) {
+        return conflict(exception.getMessage());
+    }
+
+    @ExceptionHandler(PostedSalesBatchExistsException.class)
+    ProblemDetail handlePostedSalesBatchExists(PostedSalesBatchExistsException exception) {
+        return conflict(exception.getMessage());
+    }
+
+    @ExceptionHandler(ImportBatchNotFoundException.class)
+    ProblemDetail handleImportBatchNotFound(ImportBatchNotFoundException exception) {
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+        detail.setTitle("导入批次不存在");
+        return detail;
+    }
+
+    @ExceptionHandler(InvalidImportBatchQueryException.class)
+    ProblemDetail handleInvalidImportBatchQuery(InvalidImportBatchQueryException exception) {
+        return badRequest(exception.getMessage());
+    }
+
+    /** 批次状态不是 POSTED，含并发下已被别的请求撤销的情况。 */
+    @ExceptionHandler(BatchNotReversibleException.class)
+    ProblemDetail handleBatchNotReversible(BatchNotReversibleException exception) {
+        return conflict(exception.getMessage(), "批次不可撤销");
+    }
+
+    /**
+     * 登录失败。
+     *
+     * <p>统一回同一句话，不区分账号不存在与密码错误：分开说等于给出账号枚举接口。
+     * 也不回 {@code exception.getMessage()}，那里可能带上账号是否存在的线索。
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    ProblemDetail handleAuthenticationFailure(AuthenticationException exception) {
+        ProblemDetail detail =
+                ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "账号或密码错误");
+        detail.setTitle("登录失败");
+        return detail;
+    }
+
+    /** 账号在登录之后被停用或删除，前端应引导重新登录。 */
+    @ExceptionHandler(UserAccountNotFoundException.class)
+    ProblemDetail handleUserAccountNotFound(UserAccountNotFoundException exception) {
+        ProblemDetail detail =
+                ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+        detail.setTitle("账号不存在或已停用");
+        return detail;
+    }
+
+    @ExceptionHandler(InvalidUserQueryException.class)
+    ProblemDetail handleInvalidUserQuery(InvalidUserQueryException exception) {
+        return badRequest(exception.getMessage());
+    }
+
     @ExceptionHandler(MissingServletRequestParameterException.class)
     ProblemDetail handleMissingParameter(MissingServletRequestParameterException exception) {
         return badRequest("缺少请求参数: " + exception.getParameterName());
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    ProblemDetail handleMissingPart(MissingServletRequestPartException exception) {
+        return badRequest("缺少上传文件: " + exception.getRequestPartName());
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ProblemDetail handleMaxUploadSize(MaxUploadSizeExceededException exception) {
+        return badRequest("上传文件超过大小限制");
+    }
+
+    /**
+     * 请求不是 multipart 表单（例如把文件参数填成了普通查询参数），提示正确的上传方式。
+     *
+     * <p>{@link MaxUploadSizeExceededException} 是本异常的子类，由上面更具体的处理器优先匹配。
+     */
+    @ExceptionHandler(MultipartException.class)
+    ProblemDetail handleMultipart(MultipartException exception) {
+        return badRequest("请求不是 multipart/form-data 表单，请以 form-data 方式上传 file 文件参数");
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -62,6 +179,16 @@ public class ApiExceptionHandler {
     private ProblemDetail badRequest(String message) {
         ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, message);
         detail.setTitle("请求参数错误");
+        return detail;
+    }
+
+    private ProblemDetail conflict(String message) {
+        return conflict(message, "导入冲突");
+    }
+
+    private ProblemDetail conflict(String message, String title) {
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
+        detail.setTitle(title);
         return detail;
     }
 }

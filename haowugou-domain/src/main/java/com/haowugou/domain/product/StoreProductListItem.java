@@ -14,6 +14,7 @@ public record StoreProductListItem(
         Long warehouseId,
         String warehouseCode,
         String warehouseName,
+        BigDecimal salePrice,
         List<String> supplierNames,
         BigDecimal currentQuantity,
         InventoryStatus inventoryStatus,

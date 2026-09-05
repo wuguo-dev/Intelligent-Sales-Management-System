@@ -1,5 +1,7 @@
 package com.haowugou.controller.product;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.haowugou.domain.product.InventoryStatus;
 import com.haowugou.domain.product.PeriodSalesMetrics;
 import com.haowugou.domain.product.ProductDataStatus;
@@ -21,6 +23,7 @@ import java.util.List;
  * @param warehouseId 该门店库存关系的仓库标识，允许为空
  * @param warehouseCode 仓库编码
  * @param warehouseName 仓库名称
+ * @param salePrice 商品售价
  * @param supplierNames 全部关联供应商名称
  * @param currentQuantity 该门店当前库存数量
  * @param inventoryStatus 当前库存状态
@@ -30,15 +33,16 @@ import java.util.List;
  * @param periodGrossProfitAmount 期间毛利额
  */
 public record StoreProductItemResponse(
-        Long productId,
+        @JsonSerialize(using = ToStringSerializer.class) Long productId,
         String barcode,
         String productName,
         String unit,
-        Long categoryId,
+        @JsonSerialize(using = ToStringSerializer.class) Long categoryId,
         String categoryName,
-        Long warehouseId,
+        @JsonSerialize(using = ToStringSerializer.class) Long warehouseId,
         String warehouseCode,
         String warehouseName,
+        BigDecimal salePrice,
         List<String> supplierNames,
         BigDecimal currentQuantity,
         InventoryStatus inventoryStatus,
@@ -59,6 +63,7 @@ public record StoreProductItemResponse(
                 item.warehouseId(),
                 item.warehouseCode(),
                 item.warehouseName(),
+                item.salePrice(),
                 item.supplierNames(),
                 item.currentQuantity(),
                 item.inventoryStatus(),

@@ -1,5 +1,7 @@
 package com.haowugou.controller.product;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.haowugou.application.product.StoreProductDetailResult;
 import com.haowugou.domain.product.InventoryStatus;
 import com.haowugou.domain.product.PeriodSalesMetrics;
@@ -37,14 +39,14 @@ import java.util.List;
  */
 public record StoreProductDetailResponse(
         StoreSummaryResponse store,
-        Long productId,
+        @JsonSerialize(using = ToStringSerializer.class) Long productId,
         String barcode,
         String productName,
         String unit,
-        Long categoryId,
+        @JsonSerialize(using = ToStringSerializer.class) Long categoryId,
         String categoryCode,
         String categoryName,
-        Long warehouseId,
+        @JsonSerialize(using = ToStringSerializer.class) Long warehouseId,
         String warehouseCode,
         String warehouseName,
         BigDecimal taxCostPrice,

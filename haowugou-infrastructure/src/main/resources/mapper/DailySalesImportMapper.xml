@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.haowugou.infrastructure.persistence.salesimport.DailySalesImportMapper">
+
+    <!--
+      查 active_file_hash 而非 file_hash：撤销与失败的批次会把生成列置空、释放坑位，
+      同一份文件才能在撤销后重传（uk_import_batch_active_file_hash 同口径）。
+    -->
+    <select id="countBatchByFileHash" resultType="long">
+        SELECT COUNT(*)
+        FROM import_batch
+        WHERE store_id = #{storeId}
+          AND import_type = 'DAILY_SALES'
+          AND active_file_hash = #{fileHash}
+    </select>
+
+    <!-- active_sales_date 是生成列：仅 DAILY_SALES + POSTED 时等于 data_date，其余为 NULL。 -->
+    <select id="countActiveSalesBatch" resultType="long">
+        SELECT COUNT(*)
+        FROM import_batch
+        WHERE store_id = #{storeId}
+          AND active_sales_date = #{businessDate}
+    </select>
+
+    <select id="findProductIdsByBarcodes"
+            resultType="com.haowugou.infrastructure.persistence.importbatch.ProductIdRow">
+        SELECT barcode, id AS product_id
+        FROM product
+        WHERE barcode IN
+        <foreach collection="barcodes" item="barcode" open="(" separator="," close=")">
+            #{barcode}
+        </foreach>
+    </select>
+
+    <!-- 品类名称没有唯一约束，同名取最小主键，保证同一份文件重复导入解析到同一品类。 -->
+    <select id="findCategoryIdsByNames"
+            resultType="com.haowugou.infrastructure.persistence.salesimport.NameIdRow">
+        SELECT category_name AS name, MIN(id) AS id
+        FROM category
+        WHERE category_name IN
+        <foreach collection="names" item="name" open="(" separator="," close=")">
+            #{name}
+        </foreach>
+        GROUP BY category_name
+    </select>
+
+    <select id="findSupplierIdsByNames"
+            resultType="com.haowugou.infrastructure.persistence.salesimport.NameIdRow">
+        SELECT supplier_name AS name, id
+        FROM supplier
+        WHERE supplier_name IN
+        <foreach collection="names" item="name" open="(" separator="," close=")">
+            #{name}
+        </foreach>
+    </select>
+
+    <select id="findCurrentQuantities"
+            resultType="com.haowugou.infrastructure.persistence.importbatch.InventoryQuantityRow">
+        SELECT product_id, current_quantity
+        FROM store_product_inventory
+        WHERE store_id = #{storeId}
+          AND product_id IN
+        <foreach collection="productIds" item="productId" open="(" separator="," close=")">
+            #{productId}
+        </foreach>
+    </select>
+
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO import_batch
+            (store_id, import_type, data_date, file_name, file_hash, status,
+             total_rows, success_rows, error_rows, error_message, posted_at)
+        VALUES
+            (#{storeId}, #{importType}, #{dataDate}, #{fileName}, #{fileHash}, #{status},
+             #{totalRows}, #{successRows}, #{errorRows}, #{errorMessage}, #{postedAt})
+    </insert>
+
+    <insert id="insertRawRows">
+        INSERT INTO import_raw_row
+            (batch_id, `row_number`, barcode, raw_data, parse_status, error_message)
+        VALUES
+        <foreach collection="rows" item="row" separator=",">
+            (#{batchId}, #{row.rowNumber}, #{row.barcode},
+             CAST(#{row.rawData} AS JSON), #{row.parseStatus}, #{row.errorMessage})
+        </foreach>
+    </insert>
+
+    <!-- 待完善商品：条码是全局唯一键，主键插入后由适配器按条码回查。 -->
+    <insert id="insertPendingProducts">
+        INSERT INTO product
+            (barcode, product_name, category_id, tax_cost_price, sale_price, data_status)
+        VALUES
+        <foreach collection="rows" item="row" separator=",">
+            (#{row.barcode}, #{row.productName}, #{row.categoryId},
+             #{row.taxCostPrice}, #{row.salePrice}, 'PENDING')
+        </foreach>
+    </insert>
+
+    <insert id="insertDailySales">
+        INSERT INTO daily_product_sales
+            (batch_id, store_id, business_date, product_id, supplier_id,
+             sales_quantity, sales_amount, gross_profit_amount, reported_gross_profit_rate)
+        VALUES
+        <foreach collection="rows" item="row" separator=",">
+            (#{batchId}, #{storeId}, #{businessDate}, #{row.productId}, #{row.supplierId},
+             #{row.salesQuantity}, #{row.salesAmount}, #{row.grossProfitAmount}, #{row.reportedRate})
+        </foreach>
+    </insert>
+
+    <!--
+      库存 upsert：冲突行按增量累加（销售为负、退货为正）并递增版本号，不覆盖仓库分配；
+      新行仓库留空待分配，允许形成负库存（销售早于初始库存导入时）。
+      MySQL 8.0.19+ 行别名 AS new 取代已废弃的 VALUES() 函数；右侧现有值用表名限定避免歧义。
+    -->
+    <insert id="upsertInventory">
+        INSERT INTO store_product_inventory
+            (store_id, product_id, warehouse_id, current_quantity, version)
+        VALUES
+        <foreach collection="rows" item="row" separator=",">
+            (#{storeId}, #{row.productId}, NULL, #{row.quantityChange}, 1)
+        </foreach>
+        AS new
+        ON DUPLICATE KEY UPDATE
+            current_quantity = store_product_inventory.current_quantity + new.current_quantity,
+            version = store_product_inventory.version + 1
+    </insert>
+
+    <insert id="insertMovements">
+        INSERT INTO inventory_movement
+            (store_id, product_id, batch_id, business_date, movement_type,
+             quantity_change, balance_before, balance_after)
+        VALUES
+        <foreach collection="rows" item="row" separator=",">
+            (#{storeId}, #{row.productId}, #{batchId}, #{businessDate}, #{row.movementType},
+             #{row.quantityChange}, #{row.balanceBefore}, #{row.balanceAfter})
+        </foreach>
+    </insert>
+</mapper>
