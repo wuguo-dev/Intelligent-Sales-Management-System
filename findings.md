@@ -68,3 +68,55 @@
 
 ## 视觉/浏览器发现
 - 本任务尚未使用视觉或浏览器资料。
+
+---
+
+# 初始库存导入（2026-08-27）
+
+## 需求
+- 路线图第 1 项「按门店导入初始库存」；核心目标：验证真实 POS 导出的 Excel（.xls）能否成功导入 MySQL。
+- 只做导入接口（批次查询、撤销、日销售导入属后续路线）。
+- 用户两段式工作流：导入时没有仓库列，导入后再在商品编辑页面分配仓库。
+- 严格模式：任何行级错误（未知条码、负数量、重复条码等）→ 整批 FAILED，全有或全无。
+
+## 研究发现
+- 真实 POS 文件 12 列全部为文本单元格，表头第 1 行，末尾有空行，无仓库列；条码含前导零，
+  必须按文本读取（防科学计数法）。
+- `store_product_inventory.warehouse_id` 允许 NULL（注释「待分配时可为空」），两段式工作流零改表。
+- `import_batch` 用生成列 + 唯一索引在库层保证：同店同类型同 SHA-256 唯一、每店最多一个
+  有效初始库存批次——应用预检给出友好 409，数据库约束兜底。
+- `inventory_movement` 有 `balance_after = balance_before + quantity_change` CHECK，
+  流水必须「先 SELECT 现有余额 → Java 计算 → 写入」。
+- `import_raw_row.row_number` 是 MySQL 8 保留字（窗口函数），SQL 必须反引号。
+- MySQL 8.0.19+ upsert 用行别名 `AS new` 取代已废弃的 `VALUES()`；右侧引用现有值需表名限定避免歧义。
+- MySQL JSON 列会规范化存储（如冒号后加空格），断言落库内容时需考虑存储形式。
+- 非 Excel 字节被 EasyExcel 按 CSV 兜底解析，可能不抛解析异常而是得到缺失表头错误。
+- 全链路集成测试放在 bootstrap 模块：它是唯一组装点，同时可见 application 与 infrastructure，
+  避免给 infrastructure 引入对 application 的测试依赖。
+
+## 技术决策
+| 决策 | 理由 |
+|------|------|
+| 方案 A：上传即同步校验过账，批次直接落终态 | 校验与过账同一事务，全有或全无；VALIDATING/POSTING 仅为瞬态 |
+| 行级错误整批 FAILED 留审计，未知条码同样拒绝 | 初始库存宁缺勿错；与架构规范 §17.2「未知条码入账待完善」的差异已记入设计文档，保留给日销售导入 |
+| 按表头名称定位「条码」「库存数量」列 | 不依赖列序，POS 改版更稳健；其余 10 列入原始行审计 JSON |
+| 数量 0 行跳过、数量 >0 行才建库存与流水 | POS 会导出零库存商品，不算错误 |
+| 冲突行只累加数量与版本号，不覆盖仓库分配 | 保护后续编辑页面分配的仓库 |
+| 可选 `warehouseId` 请求参数；不传则 NULL | 与两段式工作流一致；跨门店仓库返回 400 |
+| 应用层注入 `Supplier<LocalDate>` | 数据归属日期可测试（固定日期），生产为导入当天 |
+| SHA-256 文件指纹 + 数据库唯一键双重查重 | 按内容而非文件名判重；并发下唯一键兜底 |
+
+## 遇到的问题
+| 问题 | 解决方案 |
+|------|---------|
+| EasyExcel 对非 Excel 内容不抛解析异常（当 CSV 解析） | 测试只断言 `ImportFileFormatException` 类型，不绑定消息 |
+| MockMvc `.param()` 链式调用丢失 multipart 构建器类型 | 先 `.file()` 再 `.param()` |
+| `row_number` 保留字导致插入/查询语法错误 | SQL 与测试 JDBC 查询统一反引号 |
+| upsert 行别名下右侧列歧义 | 表名限定 `store_product_inventory.current_quantity` |
+| JDBC 参数中的中文 JSON 路径解析失败 | 改为读出 raw_data 后在 Java 侧断言 |
+| DECIMAL(18,3) 标度差异（0 vs 0.000） | 期望值按库内标度书写 |
+
+## 资源
+- 设计文档：`docs/superpowers/specs/2026-08-27-initial-inventory-import-design.md`
+- 真实 POS 文件：`C:\Users\xdj\Desktop\商品资料1.xls`（冒烟测试输入）
+- 架构规范：`好物购项目整体架构规范.md`

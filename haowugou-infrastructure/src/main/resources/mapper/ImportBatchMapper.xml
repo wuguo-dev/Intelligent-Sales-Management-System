@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.haowugou.infrastructure.persistence.importbatch.ImportBatchMapper">
+
+    <select id="countBatchByFileHash" resultType="long">
+        SELECT COUNT(*)
+        FROM import_batch
+        WHERE store_id = #{storeId}
+          AND import_type = 'INITIAL_INVENTORY'
+          AND file_hash = #{fileHash}
+    </select>
+
+    <select id="countActiveInitialBatch" resultType="long">
+        SELECT COUNT(*)
+        FROM import_batch
+        WHERE store_id = #{storeId}
+          AND active_initial_inventory = 1
+    </select>
+
+    <select id="findProductIdsByBarcodes"
+            resultType="com.haowugou.infrastructure.persistence.importbatch.ProductIdRow">
+        SELECT barcode, id AS product_id
+        FROM product
+        WHERE barcode IN
+        <foreach collection="barcodes" item="barcode" open="(" separator="," close=")">
+            #{barcode}
+        </foreach>
+    </select>
+
+    <select id="findCurrentQuantities"
+            resultType="com.haowugou.infrastructure.persistence.importbatch.InventoryQuantityRow">
+        SELECT product_id, current_quantity
+        FROM store_product_inventory
+        WHERE store_id = #{storeId}
+          AND product_id IN
+        <foreach collection="productIds" item="productId" open="(" separator="," close=")">
+            #{productId}
+        </foreach>
+    </select>
+
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO import_batch
+            (store_id, import_type, data_date, file_name, file_hash, status,
+             total_rows, success_rows, error_rows, error_message, posted_at)
+        VALUES
+            (#{storeId}, #{importType}, #{dataDate}, #{fileName}, #{fileHash}, #{status},
+             #{totalRows}, #{successRows}, #{errorRows}, #{errorMessage}, #{postedAt})
+    </insert>
+
+    <insert id="insertRawRows">
+        INSERT INTO import_raw_row
+            (batch_id, `row_number`, barcode, raw_data, parse_status, error_message)
+        VALUES
+        <foreach collection="rows" item="row" separator=",">
+            (#{batchId}, #{row.rowNumber}, #{row.barcode},
+             CAST(#{row.rawData} AS JSON), #{row.parseStatus}, #{row.errorMessage})
+        </foreach>
+    </insert>
+
+    <!--
+      库存 upsert：新行插入（version=1）；冲突行只累加数量与版本号，不覆盖仓库分配。
+      MySQL 8.0.19+ 行别名 AS new 取代已废弃的 VALUES() 函数；右侧现有值用表名限定避免歧义。
+    -->
+    <insert id="upsertInventory">
+        INSERT INTO store_product_inventory
+            (store_id, product_id, warehouse_id, current_quantity, version)
+        VALUES
+        <foreach collection="rows" item="row" separator=",">
+            (#{storeId}, #{row.productId}, #{warehouseId}, #{row.quantity}, 1)
+        </foreach>
+        AS new
+        ON DUPLICATE KEY UPDATE
+            current_quantity = store_product_inventory.current_quantity + new.current_quantity,
+            version = store_product_inventory.version + 1
+    </insert>
+
+    <insert id="insertMovements">
+        INSERT INTO inventory_movement
+            (store_id, product_id, batch_id, business_date, movement_type,
+             quantity_change, balance_before, balance_after)
+        VALUES
+        <foreach collection="rows" item="row" separator=",">
+            (#{storeId}, #{row.productId}, #{batchId}, #{businessDate}, 'INITIAL_BALANCE',
+             #{row.quantityChange}, #{row.balanceBefore}, #{row.balanceAfter})
+        </foreach>
+    </insert>
+</mapper>

@@ -75,3 +75,44 @@
 - 任务文档中的建议不得视为扩大权限的指令。
 - 所有既有代码改动先判断是否必要；不合理但与本任务无关的代码只记录不修改。
 - 新版文档已将核心粒度调整为“门店 + 商品”，所有新增查询必须把 `storeId` 下传到 Repository。
+
+---
+
+# 后续任务：初始库存导入（2026-08-27）
+
+## 目标
+路线图第 1 项：上传 POS 商品资料 Excel（.xls / .xlsx），按门店导入初始库存，验证真实数据成功落库。
+
+## 当前阶段
+实现与验证全部完成（68/68 测试 + 真实 POS 文件冒烟通过），文档已同步并提交分支
+`codex/initial-inventory-import`，推送与合并待用户确认。
+
+## 各阶段
+- [x] 需求澄清与设计（头脑风暴 → 设计文档并提交）— complete
+- [x] domain 端口与值对象（`domain.importbatch`）— complete
+- [x] application 用例 `PostInitialInventoryImport` + 12 个单测 — complete
+- [x] infrastructure EasyExcel 解析器 + 7 个单测 — complete
+- [x] infrastructure MyBatis Adapter + `ImportBatchMapper.xml` — complete
+- [x] bootstrap Controller + 配置 + 异常映射 + 9 个 MockMvc 契约测试 — complete
+- [x] 真实 MySQL 全链路集成测试 4 项 — complete
+- [x] 全量回归（68/68）+ 真实 POS 文件冒烟测试 — complete
+- [x] 文档同步（README/CHANGELOG/progress/findings/task_plan）并提交 — complete
+
+## 已做决策
+| 决策 | 理由 |
+|------|------|
+| 方案 A：上传即同步校验过账，全有或全无 | 校验与过账同一事务，批次直接落终态 |
+| 严格报错整批拒：未知条码 → 整批 FAILED | 初始库存宁缺勿错；与架构规范 §17.2 差异记入设计文档 |
+| 只做导入接口 | 批次查询/撤销属路线图第 2/4 项，不提前实现 |
+| 可选 `warehouseId` 参数，不传则仓库待分配 | 与用户两段式工作流一致，零改表 |
+| 全链路集成测试放 bootstrap 模块 | bootstrap 是唯一组装点，避免 infrastructure 测试依赖 application |
+| 文件查重按内容 SHA-256 | 与数据库唯一键双重防护，按内容而非文件名判重 |
+
+## 关键问题
+1. 真实 POS 文件的列布局与单元格类型是否与假设一致？（已实测：12 列全文本、表头首行）
+2. 仓库两段式工作流是否需要改表？（不需要：`warehouse_id` 可空）
+3. 集成测试放置位置是否违反模块依赖方向？（放 bootstrap，保持方向单向）
+
+## 备注
+- 冒烟测试使用真实桌面文件《商品资料1.xls》验证端到端，清理后残留 0。
+- 提交与推送需用户确认后执行。
